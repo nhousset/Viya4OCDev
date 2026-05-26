@@ -1,5 +1,4 @@
 package main
-
 import (
 	"bufio"
 	"fmt"
@@ -8,10 +7,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
 	"golang.org/x/term"
 )
-
 var (
 	RED    = "\033[0;31m"
 	GREEN  = "\033[0;32m"
@@ -21,14 +18,11 @@ var (
 	CYAN   = "\033[0;36m"
 	BOLD   = "\033[1m"
 	NC     = "\033[0m"
-
 	ScriptDir  string
 	ConfigFile string
 	CmdDir     string
-
 	configCache map[string]string
 )
-
 func init() {
 	exePath, err := os.Executable()
 	if err != nil {
@@ -39,7 +33,6 @@ func init() {
 	CmdDir = filepath.Join(ScriptDir, "cmd")
 	configCache = make(map[string]string)
 }
-
 func loadConfig() {
 	data, err := os.ReadFile(ConfigFile)
 	if err != nil {
@@ -62,11 +55,9 @@ func loadConfig() {
 		}
 	}
 }
-
 func saveToConfig(key, value string) {
 	configCache[key] = value
 	os.Setenv(key, value)
-
 	var outLines []string
 	if data, err := os.ReadFile(ConfigFile); err == nil {
 		lines := strings.Split(string(data), "\n")
@@ -81,29 +72,25 @@ func saveToConfig(key, value string) {
 		}
 	}
 	outLines = append(outLines, fmt.Sprintf("export %s=\"%s\"", key, value))
-
 	os.WriteFile(ConfigFile, []byte(strings.Join(outLines, "\n")+"\n"), 0600)
 }
-
 func prompt(msg string) string {
 	fmt.Print(msg)
 	reader := bufio.NewReader(os.Stdin)
 	text, _ := reader.ReadString('\n')
 	return strings.TrimSpace(text)
 }
-
 func promptPassword(msg string) string {
 	fmt.Print(msg)
 	bytePassword, _ := term.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Println()
 	return strings.TrimSpace(string(bytePassword))
 }
-
 func checkAndPromptVars() {
 	if configCache["TOKEN_URL"] == "" {
 		fmt.Printf("%sInitialisation de la configuration...%s\n", YELLOW, NC)
 		fmt.Println("Pour vous connecter au cluster, vous aurez besoin d'aller chercher un token sur l'interface web OpenShift.")
-		url := prompt(" URL pour répér le token OpenShift (ou 's' pour ignorer/skip) : ")
+		url := prompt("👉 URL pour récupérer le token OpenShift (ou 's' pour ignorer/skip) : ")
 		if strings.ToLower(url) == "s" {
 			saveToConfig("TOKEN_URL", "skip")
 		} else {
@@ -111,33 +98,32 @@ func checkAndPromptVars() {
 		}
 	}
 	if configCache["SERVER_URL"] == "" {
-		url := prompt(" URL du cluster OpenShift : ")
+		url := prompt("👉 URL du cluster OpenShift : ")
 		saveToConfig("SERVER_URL", url)
 	}
 	if configCache["TOKEN"] == "" {
 		tokenUrl := configCache["TOKEN_URL"]
 		if tokenUrl != "" && tokenUrl != "skip" {
-			fmt.Printf("\n%s %s\n", PURPLE, NC)
-			fmt.Printf("%s  %s Bonjour ! Il nous faut un jeton (token) OpenShift.%s\n", PURPLE, YELLOW, NC)
-			fmt.Printf("%s  %sVous pouvez en gérer un tout neuf en un clic via ce lien :%s\n", PURPLE, NC, NC)
-			fmt.Printf("%s   %s%s%s%s\n", PURPLE, BOLD, CYAN, tokenUrl, NC)
-			fmt.Printf("%s %s\n\n", PURPLE, NC)
+			fmt.Printf("\n%s ╭───────────────────────────────────────────────────────────%s\n", PURPLE, NC)
+			fmt.Printf("%s │ %s👋 Bonjour ! Il nous faut un jeton (token) OpenShift.%s\n", PURPLE, YELLOW, NC)
+			fmt.Printf("%s │ %sVous pouvez en générer un tout neuf en un clic via ce lien :%s\n", PURPLE, NC, NC)
+			fmt.Printf("%s │ 🌐 %s%s%s%s\n", PURPLE, BOLD, CYAN, tokenUrl, NC)
+			fmt.Printf("%s ╰───────────────────────────────────────────────────────────%s\n\n", PURPLE, NC)
 		}
-		token := promptPassword(" Token de connexion OpenShift : ")
+		token := promptPassword("👉 Token de connexion OpenShift : ")
 		saveToConfig("TOKEN", token)
 	}
 	if configCache["DEFAULT_NAMESPACE"] == "" {
-		ns := prompt(" Namespace SAS Viya [sas-viya] : ")
+		ns := prompt("👉 Namespace SAS Viya [sas-viya] : ")
 		if ns == "" {
 			ns = "sas-viya"
 		}
 		saveToConfig("DEFAULT_NAMESPACE", ns)
 	}
 	if configCache["OC_BIN_PATH"] == "" {
-		ocPath := prompt(" Chemin COMPLET du binaire oc : ")
+		ocPath := prompt("👉 Chemin COMPLET du binaire oc : ")
 		saveToConfig("OC_BIN_PATH", ocPath)
 	}
-
 	if ocPath := configCache["OC_BIN_PATH"]; ocPath != "" {
 		if _, err := os.Stat(ocPath); err == nil {
 			dir := filepath.Dir(ocPath)
@@ -152,62 +138,63 @@ func checkAndPromptVars() {
 		saveToConfig("AUDIT_OUT_DIR", filepath.Join(ScriptDir, "rapports_audit"))
 	}
 }
-
 func doLogin() {
+	// Bypass complet si on est en --dry
+	if os.Getenv("DRY_RUN") == "true" {
+		fmt.Printf("%s⚠️ Mode DRY RUN activé : Contournement de la connexion OpenShift.%s\n", YELLOW, NC)
+		ns := configCache["DEFAULT_NAMESPACE"]
+		if ns == "" {
+			ns = "sas-viya-dryrun"
+			configCache["DEFAULT_NAMESPACE"] = ns
+			os.Setenv("DEFAULT_NAMESPACE", ns)
+		}
+		return
+	}
 	checkAndPromptVars()
-
 	ns := configCache["DEFAULT_NAMESPACE"]
-
 	cmd := exec.Command("oc", "whoami")
 	if err := cmd.Run(); err == nil {
 		exec.Command("oc", "project", ns).Run()
 		return
 	}
-
 	serverUrl := configCache["SERVER_URL"]
-	fmt.Printf("%s Connexion às...%s\n", CYAN, serverUrl, NC)
-
+	fmt.Printf("%s🔌 Connexion à %s...%s\n", CYAN, serverUrl, NC)
 	loginArgs := []string{"login", serverUrl, "--token=" + configCache["TOKEN"]}
 	if configCache["INSECURE_SKIP_TLS_VERIFY"] == "true" {
 		loginArgs = append(loginArgs, "--insecure-skip-tls-verify=true")
 	}
-
 	cmd = exec.Command("oc", loginArgs...)
 	if err := cmd.Run(); err == nil {
-		fmt.Printf("%s Connexion résie.%s\n", GREEN, NC)
+		fmt.Printf("%s✅ Connexion réussie.%s\n", GREEN, NC)
 		exec.Command("oc", "project", ns).Run()
 	} else {
-		fmt.Printf("%s Token invalide ou expirés\n", RED, NC)
-
+		fmt.Printf("%s❌ Token invalide ou expiré.%s\n", RED, NC)
 		tokenUrl := configCache["TOKEN_URL"]
-		fmt.Printf("\n%s %s\n", PURPLE, NC)
-		fmt.Printf("%s  %s Oups ! Votre token est invalide ou a expirés\n", PURPLE, YELLOW, NC)
+		fmt.Printf("\n%s ╭───────────────────────────────────────────────────────────%s\n", PURPLE, NC)
+		fmt.Printf("%s │ %s💡 Oups ! Votre token est invalide ou a expiré.%s\n", PURPLE, YELLOW, NC)
 		if tokenUrl != "" && tokenUrl != "skip" {
-			fmt.Printf("%s  %sPas de panique, allez répér un nouveau token juste ici :%s\n", PURPLE, NC, NC)
-			fmt.Printf("%s   %s%s%s%s\n", PURPLE, BOLD, CYAN, tokenUrl, NC)
+			fmt.Printf("%s │ %sPas de panique, allez récupérer un nouveau token juste ici :%s\n", PURPLE, NC, NC)
+			fmt.Printf("%s │ 🌐 %s%s%s%s\n", PURPLE, BOLD, CYAN, tokenUrl, NC)
 		} else {
-			fmt.Printf("%s  %sConnectez-vous à'interface web OpenShift pour en gérer un nouveau.%s\n", PURPLE, NC, NC)
+			fmt.Printf("%s │ %sConnectez-vous à l'interface web OpenShift pour en générer un nouveau.%s\n", PURPLE, NC, NC)
 		}
-		fmt.Printf("%s %s\n\n", PURPLE, NC)
-
-		newToken := promptPassword(" Nouveau Token : ")
+		fmt.Printf("%s ╰───────────────────────────────────────────────────────────%s\n\n", PURPLE, NC)
+		newToken := promptPassword("👉 Nouveau Token : ")
 		if newToken == "" {
 			os.Exit(1)
 		}
 		saveToConfig("TOKEN", newToken)
-
 		loginArgs[2] = "--token=" + configCache["TOKEN"]
 		cmd = exec.Command("oc", loginArgs...)
 		if err := cmd.Run(); err == nil {
-			fmt.Printf("%s Connexion résie.%s\n", GREEN, NC)
+			fmt.Printf("%s✅ Connexion réussie.%s\n", GREEN, NC)
 			exec.Command("oc", "project", ns).Run()
 		} else {
-			fmt.Printf("%s Éhec critique.%s\n", RED, NC)
+			fmt.Printf("%s❌ Échec critique.%s\n", RED, NC)
 			os.Exit(1)
 		}
 	}
 }
-
 func showHelp() {
 	fmt.Printf("%s", CYAN)
 	fmt.Println("  ____       _      ____   __     __  ___  __   __     _       _  _     ___   ____   ____  ")
@@ -220,22 +207,20 @@ func showHelp() {
 	fmt.Printf("%s   SAS VIYA 4 OPS - Aide & Utilisation%s\n", BOLD, NC)
 	fmt.Println("   (c) Nicolas Housset | https://github.com/nhousset/Viya4OC/ | https://nicolas-housset.fr/")
 	fmt.Printf("%s%s============================================================================================%s\n\n", BOLD, BLUE, NC)
-
 	fmt.Printf("%sUsage:%s\n", BOLD, NC)
 	fmt.Println("  ./viya [OPTIONS]")
 	fmt.Println()
 	fmt.Printf("%sOptions:%s\n", BOLD, NC)
-	fmt.Printf("  %s-h, --help%s           Affiche cet éan d'aide.\n", CYAN, NC)
-	fmt.Printf("  %s--cmd <script.sh>%s    Exéte directement un script contenu dans le dossier 'cmd'\n", CYAN, NC)
+	fmt.Printf("  %s-h, --help%s           Affiche cet écran d'aide.\n", CYAN, NC)
+	fmt.Printf("  %s--cmd <script.sh>%s    Exécute directement un script contenu dans le dossier 'cmd'\n", CYAN, NC)
 	fmt.Println("                       sans passer par le menu interactif. L'authentification")
-	fmt.Println("                       sera véfiéavant le lancement.")
+	fmt.Println("                       sera vérifiée avant le lancement.")
 	fmt.Println()
 	fmt.Printf("%sExemples:%s\n", BOLD, NC)
 	fmt.Printf("  ./viya                        %s# Lance le menu interactif%s\n", CYAN, NC)
-	fmt.Printf("  ./viya --cmd check_status.sh  %s# Exéte directement 'check_status.sh'%s\n", CYAN, NC)
+	fmt.Printf("  ./viya --cmd check_status.sh  %s# Exécute directement 'check_status.sh'%s\n", CYAN, NC)
 	fmt.Println()
 }
-
 func clearScreen() {
 	var cmd *exec.Cmd
 	if strings.Contains(strings.ToLower(os.Getenv("OS")), "windows") {
@@ -246,7 +231,6 @@ func clearScreen() {
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 }
-
 func getRunningPodsCount(ns string) int {
 	cmd := exec.Command("oc", "get", "pods", "-n", ns, "--field-selector=status.phase=Running", "--no-headers")
 	out, err := cmd.Output()
@@ -259,15 +243,12 @@ func getRunningPodsCount(ns string) int {
 	}
 	return len(lines)
 }
-
 func executeScript(scriptPath string) {
-	fmt.Printf("\n%s Lancement : %s%s\n", YELLOW, filepath.Base(scriptPath), NC)
+	fmt.Printf("\n%s🚀 Lancement : %s%s\n", YELLOW, filepath.Base(scriptPath), NC)
 	fmt.Printf("%s--------------------------------------------------------------------------------------------%s\n", BLUE, NC)
-
 	if !strings.Contains(strings.ToLower(os.Getenv("OS")), "windows") {
 		os.Chmod(scriptPath, 0755)
 	}
-
 	var cmd *exec.Cmd
 	if strings.HasSuffix(scriptPath, ".sh") {
 		cmd = exec.Command("bash", scriptPath)
@@ -279,13 +260,15 @@ func executeScript(scriptPath string) {
 	cmd.Stdin = os.Stdin
 	cmd.Run()
 }
-
 func showMenu() {
 	doLogin()
-
 	ns := configCache["DEFAULT_NAMESPACE"]
-	runningCount := getRunningPodsCount(ns)
-
+	var runningCountStr string
+	if os.Getenv("DRY_RUN") == "true" {
+		runningCountStr = "[DRY-RUN]"
+	} else {
+		runningCountStr = strconv.Itoa(getRunningPodsCount(ns))
+	}
 	clearScreen()
 	fmt.Printf("%s", CYAN)
 	fmt.Println("  ____       _      ____   __     __  ___  __   __     _       _  _     ___   ____   ____  ")
@@ -299,21 +282,18 @@ func showMenu() {
 	fmt.Println("   (c) Nicolas Housset | https://github.com/nhousset/Viya4OC/ | https://nicolas-housset.fr/")
 	fmt.Printf("%s============================================================================================%s\n", BLUE, NC)
 	fmt.Printf(" Namespace : %s%s%s\n", CYAN, ns, NC)
-	fmt.Printf(" Statut    : %sConnecté | %sPods actifs: %d%s\n", GREEN, NC, YELLOW, runningCount, NC)
+	fmt.Printf(" Statut    : %sConnecté%s | %sPods actifs: %s%s\n", GREEN, NC, YELLOW, runningCountStr, NC)
 	fmt.Printf("%s--------------------------------------------------------------------------------------------%s\n", BLUE, NC)
-
 	os.MkdirAll(CmdDir, 0755)
 	files, err := os.ReadDir(CmdDir)
-
 	var scripts []string
 	for _, f := range files {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".sh") {
 			scripts = append(scripts, f.Name())
 		}
 	}
-
 	if err != nil || len(scripts) == 0 {
-		fmt.Printf("%s   (Aucun plugin trouvés\n", RED, NC)
+		fmt.Printf("%s   (Aucun plugin trouvé)%s\n", RED, NC)
 	} else {
 		for i, script := range scripts {
 			title := script
@@ -330,45 +310,42 @@ func showMenu() {
 			fmt.Printf(" %s%s%d)%s %s\n", BOLD, CYAN, i+1, NC, title)
 		}
 	}
-
 	fmt.Printf("%s--------------------------------------------------------------------------------------------%s\n", BLUE, NC)
 	fmt.Printf(" %sq)%s Quitter & Logout      %sx)%s Quitter (Garder session)\n", RED, NC, RED, NC)
 	fmt.Printf("%s============================================================================================%s\n", BLUE, NC)
-
-	choice := prompt(" Votre choix ? ")
+	choice := prompt("👉 Votre choix ? ")
 	switch strings.ToLower(choice) {
 	case "q":
-		exec.Command("oc", "logout").Run()
+		if os.Getenv("DRY_RUN") != "true" {
+			exec.Command("oc", "logout").Run()
+		}
 		os.Exit(0)
 	case "x":
 		fmt.Println("Bye.")
 		os.Exit(0)
 	}
-
 	idx, err := strconv.Atoi(choice)
 	if err != nil || idx < 1 || idx > len(scripts) {
-		fmt.Printf("%s Choix invalide.%s\n", RED, NC)
+		fmt.Printf("%s❌ Choix invalide.%s\n", RED, NC)
 		showMenu()
 		return
 	}
-
 	selectedScript := filepath.Join(CmdDir, scripts[idx-1])
 	executeScript(selectedScript)
-
 	fmt.Printf("%s--------------------------------------------------------------------------------------------%s\n", BLUE, NC)
-	prompt("Appuyez sur Entrépour revenir au menu...")
+	prompt("Appuyez sur Entrée pour revenir au menu...")
 	showMenu()
 }
-
 func main() {
 	loadConfig()
-
 	args := os.Args[1:]
 	directCmd := ""
-
+	dryRun := "false"
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch arg {
+		case "--dry":
+			dryRun = "true"
 		case "-h", "--help":
 			showHelp()
 			os.Exit(0)
@@ -377,28 +354,26 @@ func main() {
 				directCmd = args[i+1]
 				i++
 			} else {
-				fmt.Printf("%s Erreur : l'argument --cmd néssite le nom d'un script.%s\n", RED, NC)
+				fmt.Printf("%s❌ Erreur : l'argument --cmd nécessite le nom d'un script.%s\n", RED, NC)
 				fmt.Println("Utilisez --help pour plus d'informations.")
 				os.Exit(1)
 			}
 		default:
-			fmt.Printf("%s Option inconnue : %s%s\n", RED, arg, NC)
+			fmt.Printf("%s❌ Option inconnue : %s%s\n", RED, arg, NC)
 			fmt.Println("Utilisez --help pour plus d'informations.")
 			os.Exit(1)
 		}
 	}
-
+	os.Setenv("DRY_RUN", dryRun)
 	if directCmd != "" {
 		targetScript := filepath.Join(CmdDir, directCmd)
 		if _, err := os.Stat(targetScript); err != nil {
-			fmt.Printf("%s Erreur : Le script '%s' est introuvable dans le dossier '%s'.%s\n", RED, directCmd, CmdDir, NC)
+			fmt.Printf("%s❌ Erreur : Le script '%s' est introuvable dans le dossier '%s'.%s\n", RED, directCmd, CmdDir, NC)
 			os.Exit(1)
 		}
-
 		doLogin()
 		executeScript(targetScript)
 	} else {
 		showMenu()
 	}
 }
-

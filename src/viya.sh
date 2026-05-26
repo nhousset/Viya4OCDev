@@ -93,6 +93,13 @@ check_and_prompt_vars() {
 # ==============================================================================
 
 do_login() {
+    # Bypass complet si on est en --dry
+    if [ "$DRY_RUN" == "true" ]; then
+        echo -e "${YELLOW}⚠️ Mode DRY RUN activé : Contournement de la connexion OpenShift.${NC}"
+        export DEFAULT_NAMESPACE=${DEFAULT_NAMESPACE:-"sas-viya-dryrun"}
+        return 0
+    fi
+
     check_and_prompt_vars
     local TLS_OPT=""
     [ "$INSECURE_SKIP_TLS_VERIFY" == "true" ] && TLS_OPT="--insecure-skip-tls-verify=true"
@@ -139,11 +146,11 @@ do_login() {
 
 show_help() {
     echo -e "${CYAN}"
-    echo -e "  ____       _      ____   __     __  ___  __   __     _       _  _     ___   ____   ____  "
-    echo -e " / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /    / \     | || |   / _ \ |  _ \ / ___| "
-    echo -e " \___ \    / _ \   \___ \   \ \ / /   | |   \ V /    / _ \    | || |_ | | | || |_) |\___ \ "
-    echo -e "  ___) |  / ___ \   ___) |   \ V /    | |    | |    / ___ \   |__   _|| |_| ||  __/  ___) |"
-    echo -e " |____/  /_/   \_\ |____/     \_/    |___|   |_|   /_/   \_\     |_|   \___/ |_|    |____/ "
+    echo -e "  ____       _      ____   __     __ ___  __   __     _       _  _     ___   ____   ____  "
+    echo -e " / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /   / \     | || |   / _ \ |  _ \ / ___| "
+    echo -e " \___ \    / _ \   \___ \   \ \ / /   | |   \ V /   / _ \    | || |_ | | | || |_) |\___ \ "
+    echo -e "  ___) |  / ___ \   ___) |   \ V /    | |    | |   / ___ \   |__   _|| |_| ||  __/  ___) |"
+    echo -e " |____/  /_/   \_\ |____/     \_/    |___|   |_|  /_/   \_\     |_|   \___/ |_|    |____/ "
     echo -e "${NC}"
     echo -e "${BOLD}${BLUE}============================================================================================${NC}"
     echo -e "${BOLD}   SAS VIYA 4 OPS - Aide & Utilisation${NC}"
@@ -172,16 +179,20 @@ show_help() {
 show_menu() {
     do_login 
     
-    # Calcul du nombre de pods en cours d'exécution
-    local RUNNING_COUNT=$(oc get pods -n "$DEFAULT_NAMESPACE" --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
+    # Calcul du nombre de pods en cours d'exécution ou mock si Dry Run
+    if [ "$DRY_RUN" == "true" ]; then
+        local RUNNING_COUNT="[DRY-RUN]"
+    else
+        local RUNNING_COUNT=$(oc get pods -n "$DEFAULT_NAMESPACE" --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
+    fi
     
     clear
     echo -e "${CYAN}"
-    echo -e "  ____       _      ____   __     __  ___  __   __     _       _  _     ___   ____   ____  "
-    echo -e " / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /    / \     | || |   / _ \ |  _ \ / ___| "
-    echo -e " \___ \    / _ \   \___ \   \ \ / /   | |   \ V /    / _ \    | || |_ | | | || |_) |\___ \ "
-    echo -e "  ___) |  / ___ \   ___) |   \ V /    | |    | |    / ___ \   |__   _|| |_| ||  __/  ___) |"
-    echo -e " |____/  /_/   \_\ |____/     \_/    |___|   |_|   /_/   \_\     |_|   \___/ |_|    |____/ "
+    echo -e "  ____       _      ____   __     __ ___  __   __     _       _  _     ___   ____   ____  "
+    echo -e " / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /   / \     | || |   / _ \ |  _ \ / ___| "
+    echo -e " \___ \    / _ \   \___ \   \ \ / /   | |   \ V /   / _ \    | || |_ | | | || |_) |\___ \ "
+    echo -e "  ___) |  / ___ \   ___) |   \ V /    | |    | |   / ___ \   |__   _|| |_| ||  __/  ___) |"
+    echo -e " |____/  /_/   \_\ |____/     \_/    |___|   |_|  /_/   \_\     |_|   \___/ |_|    |____/ "
     echo -e "${NC}"
     echo -e "${BLUE}============================================================================================${NC}"
     echo -e "${BOLD}   SAS VIYA 4 OPS - Console d'Administration${NC}"
@@ -212,7 +223,10 @@ show_menu() {
     read -p "👉 Votre choix ? " CHOICE
 
     case "$CHOICE" in
-        q) oc logout ; exit 0 ;;
+        q) 
+            [ "$DRY_RUN" != "true" ] && oc logout >/dev/null 2>&1
+            exit 0 
+            ;;
         x) echo "Bye." ; exit 0 ;;
     esac
 
@@ -225,7 +239,7 @@ show_menu() {
     echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
     
     chmod +x "$SELECTED_SCRIPT"
-    export DEFAULT_NAMESPACE AUDIT_OUT_DIR
+    export DEFAULT_NAMESPACE AUDIT_OUT_DIR DRY_RUN
     
     "$SELECTED_SCRIPT"
     
@@ -239,9 +253,13 @@ show_menu() {
 # ==============================================================================
 
 DIRECT_CMD=""
+DRY_RUN="false"
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
+        --dry)
+            DRY_RUN="true"
+            ;;
         -h|--help)
             show_help
             exit 0
@@ -273,14 +291,14 @@ if [ -n "$DIRECT_CMD" ]; then
         exit 1
     fi
     
-    # Authentification requise même en mode direct
+    # Authentification requise même en mode direct (sauf en dry-run)
     do_login
     
     echo -e "\n${YELLOW}🚀 Lancement direct : ${DIRECT_CMD}${NC}"
     echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
     
     chmod +x "$TARGET_SCRIPT"
-    export DEFAULT_NAMESPACE AUDIT_OUT_DIR
+    export DEFAULT_NAMESPACE AUDIT_OUT_DIR DRY_RUN
     
     "$TARGET_SCRIPT"
     exit $?

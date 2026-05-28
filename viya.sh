@@ -16,6 +16,7 @@ NC='\033[0m' # No Color
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CMD_DIR="$SCRIPT_DIR/cmd"
+CMD_CLI_DIR="$SCRIPT_DIR/cmd_cli"
 
 # Valeurs par défaut (écrasées par les arguments)
 PROFILE_NAME="default"
@@ -400,25 +401,52 @@ show_menu() {
     echo -e " Namespace : ${CYAN}$DEFAULT_NAMESPACE${NC}"
     echo -e " Profil    : ${PURPLE}${PROFILE_NAME}${NC} (${CONFIG_FILE})"
     echo -e " Statut    : ${GREEN}Connecté${NC} | Pods: ${YELLOW}$RUNNING_COUNT${NC} | CPU: ${PURPLE}${RES_CPU}${NC} | RAM: ${PURPLE}${RES_MEM}${NC}"
-    echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
-
+    
     if [ ! -d "$CMD_DIR" ]; then mkdir -p "$CMD_DIR"; fi
+    if [ ! -d "$CMD_CLI_DIR" ]; then mkdir -p "$CMD_CLI_DIR"; fi
 
-    local files=("$CMD_DIR"/*.sh)
-    if [ ! -e "${files[0]}" ]; then
+    local files_cmd=("$CMD_DIR"/*.sh)
+    local files_cli=("$CMD_CLI_DIR"/*.sh)
+    
+    local all_files=()
+    local i=1
+
+    # ===== SECTION 1 : cmd/ =====
+    echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
+    echo -e "${BOLD}${PURPLE} 📁 Plugins OpenShift (Dossier cmd/)${NC}"
+    echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
+    
+    if [ ! -e "${files_cmd[0]}" ]; then
         echo -e "${RED}   (Aucun plugin trouvé)${NC}"
     else
-        local i=1
-        for f in "${files[@]}"; do
-            local TITLE=$(grep "# TITLE:" "$f" | sed 's/# TITLE://' | sed 's/^[[:space:]]*//')
+        for f in "${files_cmd[@]}"; do
+            local TITLE=$(grep -m 1 "# TITLE:" "$f" | sed 's/# TITLE://' | sed 's/^[[:space:]]*//')
             [ -z "$TITLE" ] && TITLE=$(basename "$f")
             echo -e " ${BOLD}${CYAN}$i)${NC} $TITLE"
+            all_files+=("$f")
+            ((i++))
+        done
+    fi
+
+    # ===== SECTION 2 : cmd_cli/ =====
+    echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
+    echo -e "${BOLD}${PURPLE} 📁 Plugins SAS Viya CLI (Dossier cmd_cli/)${NC}"
+    echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
+    
+    if [ ! -e "${files_cli[0]}" ]; then
+        echo -e "${RED}   (Aucun plugin trouvé)${NC}"
+    else
+        for f in "${files_cli[@]}"; do
+            local TITLE=$(grep -m 1 "# TITLE:" "$f" | sed 's/# TITLE://' | sed 's/^[[:space:]]*//')
+            [ -z "$TITLE" ] && TITLE=$(basename "$f")
+            echo -e " ${BOLD}${CYAN}$i)${NC} $TITLE"
+            all_files+=("$f")
             ((i++))
         done
     fi
 
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
-    echo -e " ${BOLD}${CYAN}99)${NC} Informations de Configuration & Version OC"
+    echo -e " ${BOLD}${CYAN}99)${NC} Informations de Configuration & Versions"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
     echo -e " ${RED}q)${NC} Quitter & Logout      ${RED}x)${NC} Quitter (Garder session)"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '=')${NC}"
@@ -441,7 +469,7 @@ show_menu() {
         echo -e "${RED}❌ Choix invalide.${NC}" ; sleep 1 ; show_menu ; return
     fi
 
-    local SELECTED_SCRIPT="${files[$((CHOICE-1))]}"
+    local SELECTED_SCRIPT="${all_files[$((CHOICE-1))]}"
     echo -e "\n${YELLOW}🚀 Lancement : $(basename "$SELECTED_SCRIPT")${NC}"
     echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
     
@@ -510,8 +538,11 @@ show_disclaimer
 if [ -n "$DIRECT_CMD" ]; then
     TARGET_SCRIPT="$CMD_DIR/$DIRECT_CMD"
     if [ ! -f "$TARGET_SCRIPT" ]; then
-        echo -e "${RED}❌ Erreur : Le script '${DIRECT_CMD}' est introuvable dans le dossier '${CMD_DIR}'.${NC}"
-        exit 1
+        TARGET_SCRIPT="$CMD_CLI_DIR/$DIRECT_CMD"
+        if [ ! -f "$TARGET_SCRIPT" ]; then
+            echo -e "${RED}❌ Erreur : Le script '${DIRECT_CMD}' est introuvable ni dans '${CMD_DIR}' ni dans '${CMD_CLI_DIR}'.${NC}"
+            exit 1
+        fi
     fi
     
     # Authentification requise même en mode direct (sauf en dry-run)

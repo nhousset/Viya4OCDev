@@ -36,7 +36,7 @@ save_to_config() {
 }
 
 check_and_prompt_vars() {
-    # 0. Environnement (Nouveau)
+    # 0. Environnement
     if [ -z "$ENV_TYPE" ]; then
         echo -e "${YELLOW}Initialisation de la configuration...${NC}"
         read -p "👉 Type d'environnement (ex: prod, dev, test) : " input_env
@@ -149,7 +149,7 @@ do_login() {
 }
 
 # ==============================================================================
-# 3. AFFICHAGE DE L'AIDE
+# 3. AFFICHAGE DE L'AIDE ET UTILITAIRES
 # ==============================================================================
 
 show_help() {
@@ -180,6 +180,12 @@ show_help() {
     echo -e ""
 }
 
+print_prod_banner() {
+    if [[ "${ENV_TYPE,,}" == *"prod"* ]]; then
+        echo -e "${BOLD}${RED}+------------------------------------ ⚠️  PRODUCTION ⚠️  ------------------------------------+${NC}"
+    fi
+}
+
 # ==============================================================================
 # 4. MENU DYNAMIQUE
 # ==============================================================================
@@ -202,17 +208,8 @@ show_menu() {
     
     # Largeur interne du menu
     local IW=92
-    
-    # Fonctions utilitaires d'affichage dynamique (Encadrement si prod)
-    m_sep() {
-        local char="$1"
-        if [ "$IS_PROD" == "true" ]; then
-            echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' "$char")+${NC}"
-        else
-            echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' "$char")${NC}"
-        fi
-    }
 
+    # Fonction pour encadrer uniquement le texte du Header si on est en Prod
     m_echo() {
         local text="$1"
         if [ "$IS_PROD" == "true" ]; then
@@ -229,47 +226,56 @@ show_menu() {
     
     clear
     if [ "$IS_PROD" == "true" ]; then
-        m_sep "-"
-        m_echo "${BOLD}${RED} !!! ATTENTION - ENVIRONNEMENT DE PRODUCTION !!!${NC}"
+        echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' '-')+${NC}"
+        m_echo " ${BOLD}${RED}!!! ATTENTION - ENVIRONNEMENT DE PRODUCTION !!!${NC}"
     fi
 
+    # L'ASCII Art (encadré si PROD, normal sinon)
     m_echo "${CYAN}  ____       _      ____   __     __ ___  __   __     _       _  _     ___   ____   ____  ${NC}"
     m_echo "${CYAN} / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /   / \     | || |   / _ \ |  _ \ / ___| ${NC}"
     m_echo "${CYAN} \___ \    / _ \   \___ \   \ \ / /   | |   \ V /   / _ \    | || |_ | | | || |_) |\___ \ ${NC}"
     m_echo "${CYAN}  ___) |  / ___ \   ___) |   \ V /    | |    | |   / ___ \   |__   _|| |_| ||  __/  ___) |${NC}"
     m_echo "${CYAN} |____/  /_/   \_\ |____/     \_/    |___|   |_|  /_/   \_\     |_|   \___/ |_|    |____/ ${NC}"
     
-    m_sep "="
-    m_echo "${BOLD}   SAS VIYA 4 OPS - Console d'Administration${NC}"
+    if [ "$IS_PROD" == "true" ]; then
+        echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' '=')+${NC}"
+    else
+        echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '=')${NC}"
+    fi
+
+    m_echo " ${BOLD}  SAS VIYA 4 OPS - Console d'Administration${NC}"
     m_echo "   (c) Nicolas Housset | https://github.com/nhousset/Viya4OC/ | https://nicolas-housset.fr/"
-    m_sep "="
-    m_echo " Namespace : ${CYAN}$DEFAULT_NAMESPACE${NC}"
-    m_echo " Statut    : ${GREEN}Connecté${NC} | ${YELLOW}Pods actifs: $RUNNING_COUNT${NC}"
-    m_sep "-"
+    
+    if [ "$IS_PROD" == "true" ]; then
+        echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' '=')+${NC}"
+    else
+        echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '=')${NC}"
+    fi
+
+    # ==== À PARTIR D'ICI : Plus d'encadrement, affichage standard ====
+    
+    echo -e " Namespace : ${CYAN}$DEFAULT_NAMESPACE${NC}"
+    echo -e " Statut    : ${GREEN}Connecté${NC} | ${YELLOW}Pods actifs: $RUNNING_COUNT${NC}"
+    echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
 
     if [ ! -d "$CMD_DIR" ]; then mkdir -p "$CMD_DIR"; fi
 
     local files=("$CMD_DIR"/*.sh)
     if [ ! -e "${files[0]}" ]; then
-        m_echo "${RED}   (Aucun plugin trouvé)${NC}"
+        echo -e "${RED}   (Aucun plugin trouvé)${NC}"
     else
         local i=1
         for f in "${files[@]}"; do
             local TITLE=$(grep "# TITLE:" "$f" | sed 's/# TITLE://' | sed 's/^[[:space:]]*//')
             [ -z "$TITLE" ] && TITLE=$(basename "$f")
-            m_echo " ${BOLD}${CYAN}$i)${NC} $TITLE"
+            echo -e " ${BOLD}${CYAN}$i)${NC} $TITLE"
             ((i++))
         done
     fi
 
-    m_sep "-"
-    m_echo " ${RED}q)${NC} Quitter & Logout      ${RED}x)${NC} Quitter (Garder session)"
-    
-    if [ "$IS_PROD" == "true" ]; then
-        m_sep "-"
-    else
-        m_sep "="
-    fi
+    echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
+    echo -e " ${RED}q)${NC} Quitter & Logout      ${RED}x)${NC} Quitter (Garder session)"
+    echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '=')${NC}"
     
     read -p "👉 Votre choix ? " CHOICE
 
@@ -288,6 +294,9 @@ show_menu() {
     local SELECTED_SCRIPT="${files[$((CHOICE-1))]}"
     echo -e "\n${YELLOW}🚀 Lancement : $(basename "$SELECTED_SCRIPT")${NC}"
     echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
+    
+    # Affichage du panneau d'avertissement de Production juste avant le script
+    print_prod_banner
     
     chmod +x "$SELECTED_SCRIPT"
     export DEFAULT_NAMESPACE AUDIT_OUT_DIR DRY_RUN
@@ -347,6 +356,9 @@ if [ -n "$DIRECT_CMD" ]; then
     
     echo -e "\n${YELLOW}🚀 Lancement direct : ${DIRECT_CMD}${NC}"
     echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
+    
+    # Affichage du panneau d'avertissement de Production en ligne de commande direct
+    print_prod_banner
     
     chmod +x "$TARGET_SCRIPT"
     export DEFAULT_NAMESPACE AUDIT_OUT_DIR DRY_RUN

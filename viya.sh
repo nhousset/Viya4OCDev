@@ -36,9 +36,17 @@ save_to_config() {
 }
 
 check_and_prompt_vars() {
+    # 0. Environnement (Nouveau)
+    if [ -z "$ENV_TYPE" ]; then
+        echo -e "${YELLOW}Initialisation de la configuration...${NC}"
+        read -p "👉 Type d'environnement (ex: prod, dev, test) : " input_env
+        ENV_TYPE=${input_env:-dev}
+        save_to_config "ENV_TYPE" "$ENV_TYPE"
+    fi
+
     # 1. Demande de l'URL du Token en priorité absolue
     if [ -z "$TOKEN_URL" ]; then
-        echo -e "${YELLOW}Initialisation de la configuration...${NC}"
+        if [ -n "$ENV_TYPE" ]; then echo -e "${YELLOW}Configuration suite...${NC}"; fi
         echo -e "Pour vous connecter au cluster, vous aurez besoin d'aller chercher un token sur l'interface web OpenShift."
         read -p "👉 URL pour récupérer le token OpenShift (ou 's' pour ignorer/skip) : " input_token_url
         if [ "$input_token_url" = "s" ] || [ "$input_token_url" = "S" ]; then
@@ -185,41 +193,84 @@ show_menu() {
     else
         local RUNNING_COUNT=$(oc get pods -n "$DEFAULT_NAMESPACE" --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
     fi
+
+    # Vérification si on est en environnement de PROD
+    local IS_PROD="false"
+    if [[ "${ENV_TYPE,,}" == *"prod"* ]]; then
+        IS_PROD="true"
+    fi
+    
+    # Largeur interne du menu
+    local IW=92
+    
+    # Fonctions utilitaires d'affichage dynamique (Encadrement si prod)
+    m_sep() {
+        local char="$1"
+        if [ "$IS_PROD" == "true" ]; then
+            echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' "$char")+${NC}"
+        else
+            echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' "$char")${NC}"
+        fi
+    }
+
+    m_echo() {
+        local text="$1"
+        if [ "$IS_PROD" == "true" ]; then
+            # Retrait des codes couleurs ANSI pour calculer la vraie longueur du texte
+            local clean_text=$(echo -e "$text" | sed 's/\x1b\[[0-9;]*m//g')
+            local len=${#clean_text}
+            local pad=$((IW - len))
+            [ $pad -lt 0 ] && pad=0
+            echo -e "${RED}|${NC}${text}$(printf '%*s' "$pad" "")${RED}|${NC}"
+        else
+            echo -e "${text}"
+        fi
+    }
     
     clear
-    echo -e "${CYAN}"
-    echo -e "  ____       _      ____   __     __ ___  __   __     _       _  _     ___   ____   ____  "
-    echo -e " / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /   / \     | || |   / _ \ |  _ \ / ___| "
-    echo -e " \___ \    / _ \   \___ \   \ \ / /   | |   \ V /   / _ \    | || |_ | | | || |_) |\___ \ "
-    echo -e "  ___) |  / ___ \   ___) |   \ V /    | |    | |   / ___ \   |__   _|| |_| ||  __/  ___) |"
-    echo -e " |____/  /_/   \_\ |____/     \_/    |___|   |_|  /_/   \_\     |_|   \___/ |_|    |____/ "
-    echo -e "${NC}"
-    echo -e "${BLUE}============================================================================================${NC}"
-    echo -e "${BOLD}   SAS VIYA 4 OPS - Console d'Administration${NC}"
-    echo -e "   (c) Nicolas Housset | https://github.com/nhousset/Viya4OC/ | https://nicolas-housset.fr/"
-    echo -e "${BLUE}============================================================================================${NC}"
-    echo -e " Namespace : ${CYAN}$DEFAULT_NAMESPACE${NC}"
-    echo -e " Statut    : ${GREEN}Connecté${NC} | ${YELLOW}Pods actifs: $RUNNING_COUNT${NC}"
-    echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
+    if [ "$IS_PROD" == "true" ]; then
+        m_sep "-"
+        m_echo "${BOLD}${RED} !!! ATTENTION - ENVIRONNEMENT DE PRODUCTION !!!${NC}"
+    fi
+
+    m_echo "${CYAN}  ____       _      ____   __     __ ___  __   __     _       _  _     ___   ____   ____  ${NC}"
+    m_echo "${CYAN} / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /   / \     | || |   / _ \ |  _ \ / ___| ${NC}"
+    m_echo "${CYAN} \___ \    / _ \   \___ \   \ \ / /   | |   \ V /   / _ \    | || |_ | | | || |_) |\___ \ ${NC}"
+    m_echo "${CYAN}  ___) |  / ___ \   ___) |   \ V /    | |    | |   / ___ \   |__   _|| |_| ||  __/  ___) |${NC}"
+    m_echo "${CYAN} |____/  /_/   \_\ |____/     \_/    |___|   |_|  /_/   \_\     |_|   \___/ |_|    |____/ ${NC}"
+    
+    m_sep "="
+    m_echo "${BOLD}   SAS VIYA 4 OPS - Console d'Administration${NC}"
+    m_echo "   (c) Nicolas Housset | https://github.com/nhousset/Viya4OC/ | https://nicolas-housset.fr/"
+    m_sep "="
+    m_echo " Namespace : ${CYAN}$DEFAULT_NAMESPACE${NC}"
+    m_echo " Statut    : ${GREEN}Connecté${NC} | ${YELLOW}Pods actifs: $RUNNING_COUNT${NC}"
+    m_sep "-"
 
     if [ ! -d "$CMD_DIR" ]; then mkdir -p "$CMD_DIR"; fi
 
     local files=("$CMD_DIR"/*.sh)
     if [ ! -e "${files[0]}" ]; then
-        echo -e "${RED}   (Aucun plugin trouvé)${NC}"
+        m_echo "${RED}   (Aucun plugin trouvé)${NC}"
     else
         local i=1
         for f in "${files[@]}"; do
             local TITLE=$(grep "# TITLE:" "$f" | sed 's/# TITLE://' | sed 's/^[[:space:]]*//')
             [ -z "$TITLE" ] && TITLE=$(basename "$f")
-            echo -e " ${BOLD}${CYAN}$i)${NC} $TITLE"
+            m_echo " ${BOLD}${CYAN}$i)${NC} $TITLE"
             ((i++))
         done
     fi
 
-    echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
-    echo -e " ${RED}q)${NC} Quitter & Logout      ${RED}x)${NC} Quitter (Garder session)"
-    echo -e "${BLUE}============================================================================================${NC}"
+    m_sep "-"
+    m_echo " ${RED}q)${NC} Quitter & Logout      ${RED}x)${NC} Quitter (Garder session)"
+    
+    if [ "$IS_PROD" == "true" ]; then
+        m_sep "-"
+    else
+        m_sep "="
+    fi
+    
     read -p "👉 Votre choix ? " CHOICE
 
     case "$CHOICE" in

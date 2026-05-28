@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Fichier : viya.sh
-# Description : Orchestrateur d'administration SAS Viya 4 (Version Colorisée)
+# Description : Boîte à outils SAS Viya 4 sur OpenShift (Version Colorisée)
 # ==============================================================================
 
 # Définition des couleurs
@@ -151,6 +151,37 @@ do_login() {
 # 2. AFFICHAGE ET UTILITAIRES
 # ==============================================================================
 
+show_disclaimer() {
+    if [ "$DISCLAIMER_ACCEPTED" != "true" ]; then
+        clear
+        echo -e "${RED}$(printf '%*s' 92 | tr ' ' '=')${NC}"
+        echo -e "${BOLD}${RED}                                ⚠️  AVERTISSEMENT LÉGAL ⚠️${NC}"
+        echo -e "${RED}$(printf '%*s' 92 | tr ' ' '=')${NC}"
+        echo -e ""
+        echo -e "${CYAN} Cet outil n'est NI un produit officiel SAS Institute, NI un produit officiel OpenShift.${NC}"
+        echo -e ""
+        echo -e " Il s'agit d'une ${BOLD}boîte à outils non officielle${NC} conçue pour faciliter la gestion et"
+        echo -e " l'administration d'un environnement SAS Viya 4 sur un cluster OpenShift."
+        echo -e ""
+        echo -e "${YELLOW} 🛑 Responsabilité :${NC}"
+        echo -e " L'utilisation de ce script se fait à vos propres risques. Les auteurs déclinent toute"
+        echo -e " responsabilité en cas de mauvaise manipulation, de coupure de service ou de perte de"
+        echo -e " données sur votre cluster."
+        echo -e ""
+        echo -e "${PURPLE} 💡 Conseil de sécurité :${NC}"
+        echo -e " La gestion des Profils (via ${BOLD}--profile${NC}) permet de cloisonner vos configurations."
+        echo -e " Utilisez-les systématiquement pour éviter d'exécuter des actions critiques en"
+        echo -e " PRODUCTION par inadvertance !"
+        echo -e ""
+        echo -e "${RED}$(printf '%*s' 92 | tr ' ' '=')${NC}"
+        
+        read -p " 👉 Appuyez sur Entrée pour accepter ces conditions et continuer..."
+        
+        DISCLAIMER_ACCEPTED="true"
+        save_to_config "DISCLAIMER_ACCEPTED" "true"
+    fi
+}
+
 show_help() {
     echo -e "${CYAN}"
     echo -e "  ____       _      ____   __     __ ___  __   __     _       _  _     ___   ____   ____  "
@@ -160,7 +191,7 @@ show_help() {
     echo -e " |____/  /_/   \_\ |____/     \_/    |___|   |_|  /_/   \_\     |_|   \___/ |_|    |____/ "
     echo -e "${NC}"
     echo -e "${BOLD}${BLUE}============================================================================================${NC}"
-    echo -e "${BOLD}   SAS VIYA 4 OPS - Aide & Utilisation${NC}"
+    echo -e "${BOLD}   SAS VIYA 4 OPS - Boîte à outils${NC}"
     echo -e "   (c) Nicolas Housset | https://github.com/nhousset/Viya4OC/ | https://nicolas-housset.fr/"
     echo -e "${BOLD}${BLUE}============================================================================================${NC}"
     echo -e ""
@@ -284,7 +315,7 @@ show_menu() {
         echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '=')${NC}"
     fi
 
-    m_echo " ${BOLD}  SAS VIYA 4 OPS - Console d'Administration${NC}"
+    m_echo " ${BOLD}  SAS VIYA 4 OPS - Boîte à outils${NC}"
     m_echo "   (c) Nicolas Housset | https://github.com/nhousset/Viya4OC/ | https://nicolas-housset.fr/"
     
     if [ "$IS_PROD" == "true" ]; then
@@ -400,6 +431,9 @@ done
 
 # Chargement de la configuration sélectionnée (s'il existe, sinon ce sera fait après)
 if [ -f "$CONFIG_FILE" ]; then source "$CONFIG_FILE"; fi
+
+# Affichage du disclaimer (si non accepté dans ce profil)
+show_disclaimer
 
 # Lancement principal
 if [ -n "$DIRECT_CMD" ]; then

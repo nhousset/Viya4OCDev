@@ -398,9 +398,20 @@ show_menu() {
 
     # ==== À PARTIR D'ICI : Plus d'encadrement, affichage standard ====
     
+    # Statut SAS CLI
+    local SAS_STATUS="${RED}Non installé${NC}"
+    if command -v sas-viya >/dev/null 2>&1; then
+        SAS_STATUS="${YELLOW}Non connecté${NC}"
+        # Vérification très rapide de la présence d'un token dans le fichier de config SAS local
+        if [ -f "$HOME/.sas/credentials.json" ] && grep -q "\"access_token\"" "$HOME/.sas/credentials.json"; then
+            SAS_STATUS="${GREEN}Connecté${NC}"
+        fi
+    fi
+
     echo -e " Namespace : ${CYAN}$DEFAULT_NAMESPACE${NC}"
     echo -e " Profil    : ${PURPLE}${PROFILE_NAME}${NC} (${CONFIG_FILE})"
-    echo -e " Statut    : ${GREEN}Connecté${NC} | Pods: ${YELLOW}$RUNNING_COUNT${NC} | CPU: ${PURPLE}${RES_CPU}${NC} | RAM: ${PURPLE}${RES_MEM}${NC}"
+    echo -e " OCP       : ${GREEN}Connecté${NC} | Pods: ${YELLOW}$RUNNING_COUNT${NC} | CPU: ${PURPLE}${RES_CPU}${NC} | RAM: ${PURPLE}${RES_MEM}${NC}"
+    echo -e " SAS Viya  : $SAS_STATUS"
     
     if [ ! -d "$CMD_DIR" ]; then mkdir -p "$CMD_DIR"; fi
     if [ ! -d "$CMD_CLI_DIR" ]; then mkdir -p "$CMD_CLI_DIR"; fi
@@ -413,7 +424,7 @@ show_menu() {
 
     # ===== SECTION 1 : cmd/ =====
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
-    echo -e "${BOLD}${PURPLE} 📁 Plugins OpenShift (Dossier cmd/)${NC}"
+    echo -e "${BOLD}${PURPLE} 📁 Plugins OpenShift${NC}"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
     
     if [ ! -e "${files_cmd[0]}" ]; then
@@ -430,7 +441,7 @@ show_menu() {
 
     # ===== SECTION 2 : cmd_cli/ =====
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
-    echo -e "${BOLD}${PURPLE} 📁 Plugins SAS Viya CLI (Dossier cmd_cli/)${NC}"
+    echo -e "${BOLD}${PURPLE} 📁 Plugins SAS Viya CLI${NC}"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
     
     if [ ! -e "${files_cli[0]}" ]; then

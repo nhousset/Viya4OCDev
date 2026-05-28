@@ -15,14 +15,17 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/config.env"
 CMD_DIR="$SCRIPT_DIR/cmd"
 
-# ==============================================================================
-# 1. GESTION DE LA CONFIGURATION
-# ==============================================================================
+# Valeurs par défaut (écrasées par les arguments)
+PROFILE_NAME="default"
+CONFIG_FILE="$SCRIPT_DIR/config.env"
+DIRECT_CMD=""
+DRY_RUN="false"
 
-if [ -f "$CONFIG_FILE" ]; then source "$CONFIG_FILE"; fi
+# ==============================================================================
+# 1. FONCTIONS DE GESTION DE CONFIGURATION
+# ==============================================================================
 
 save_to_config() {
     local key=$1
@@ -38,13 +41,13 @@ save_to_config() {
 check_and_prompt_vars() {
     # 0. Environnement
     if [ -z "$ENV_TYPE" ]; then
-        echo -e "${YELLOW}Initialisation de la configuration...${NC}"
+        echo -e "${YELLOW}Initialisation du profil : ${PROFILE_NAME}${NC}"
         read -p "👉 Type d'environnement (ex: prod, dev, test) : " input_env
         ENV_TYPE=${input_env:-dev}
         save_to_config "ENV_TYPE" "$ENV_TYPE"
     fi
 
-    # 1. Demande de l'URL du Token en priorité absolue
+    # 1. Demande de l'URL du Token
     if [ -z "$TOKEN_URL" ]; then
         if [ -n "$ENV_TYPE" ]; then echo -e "${YELLOW}Configuration suite...${NC}"; fi
         echo -e "Pour vous connecter au cluster, vous aurez besoin d'aller chercher un token sur l'interface web OpenShift."
@@ -63,7 +66,7 @@ check_and_prompt_vars() {
         save_to_config "SERVER_URL" "$SERVER_URL"
     fi
 
-    # 3. Demande du Token (avec affichage sympa de l'URL si dispo)
+    # 3. Demande du Token
     if [ -z "$TOKEN" ]; then
         if [ -n "$TOKEN_URL" ] && [ "$TOKEN_URL" != "skip" ]; then
             echo -e "\n${PURPLE} ╭───────────────────────────────────────────────────────────${NC}"
@@ -95,10 +98,6 @@ check_and_prompt_vars() {
     [ -z "$INSECURE_SKIP_TLS_VERIFY" ] && save_to_config "INSECURE_SKIP_TLS_VERIFY" "true"
     [ -z "$AUDIT_OUT_DIR" ] && save_to_config "AUDIT_OUT_DIR" "$SCRIPT_DIR/rapports_audit"
 }
-
-# ==============================================================================
-# 2. LOGIQUE DE CONNEXION
-# ==============================================================================
 
 do_login() {
     # Bypass complet si on est en --dry
@@ -149,7 +148,7 @@ do_login() {
 }
 
 # ==============================================================================
-# 3. AFFICHAGE DE L'AIDE ET UTILITAIRES
+# 2. AFFICHAGE ET UTILITAIRES
 # ==============================================================================
 
 show_help() {
@@ -170,13 +169,14 @@ show_help() {
     echo -e ""
     echo -e "${BOLD}Options:${NC}"
     echo -e "  ${CYAN}-h, --help${NC}           Affiche cet écran d'aide."
-    echo -e "  ${CYAN}--cmd <script.sh>${NC}    Exécute directement un script contenu dans le dossier 'cmd'"
-    echo -e "                       sans passer par le menu interactif. L'authentification"
-    echo -e "                       sera vérifiée avant le lancement."
+    echo -e "  ${CYAN}-p, --profile <nom>${NC}  Charge un profil spécifique (ex: -p PROD charge config-prod.env)."
+    echo -e "                       Si le fichier n'existe pas, un nouveau profil est configuré."
+    echo -e "  ${CYAN}--cmd <script.sh>${NC}    Exécute directement un script sans passer par le menu."
     echo -e ""
     echo -e "${BOLD}Exemples:${NC}"
-    echo -e "  ./viya.sh                        ${CYAN}# Lance le menu interactif${NC}"
-    echo -e "  ./viya.sh --cmd check_status.sh  ${CYAN}# Exécute directement 'check_status.sh'${NC}"
+    echo -e "  ./viya.sh                        ${CYAN}# Lance le menu avec le profil par défaut${NC}"
+    echo -e "  ./viya.sh --profile PROD         ${CYAN}# Lance le menu avec la config config-prod.env${NC}"
+    echo -e "  ./viya.sh --cmd check_status.sh  ${CYAN}# Exécute directement un script${NC}"
     echo -e ""
 }
 
@@ -186,8 +186,49 @@ print_prod_banner() {
     fi
 }
 
+show_config_info() {
+    clear
+    echo -e "${BLUE}============================================================================================${NC}"
+    echo -e "${BOLD}   🔧 Informations de Configuration${NC}"
+    echo -e "${BLUE}============================================================================================${NC}"
+    echo -e "   Profil Actif : ${CYAN}${PROFILE_NAME}${NC}"
+    echo -e "   Fichier      : ${YELLOW}$CONFIG_FILE${NC}"
+    echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
+    
+    if [ -f "$CONFIG_FILE" ]; then
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            [ -z "$line" ] && continue
+            if [[ "$line" == export\ TOKEN=* ]]; then
+                echo -e " export ${CYAN}TOKEN${NC}=\"${GREEN}*** MASQUÉ ***${NC}\""
+            elif [[ "$line" == export\ * ]]; then
+                local key=$(echo "$line" | cut -d'=' -f1 | sed 's/export //')
+                local val=$(echo "$line" | cut -d'=' -f2-)
+                echo -e " export ${CYAN}$key${NC}=${YELLOW}$val${NC}"
+            else
+                echo -e " $line"
+            fi
+        done < "$CONFIG_FILE"
+    else
+        echo -e " ${RED}Fichier introuvable ou vide.${NC}"
+    fi
+
+    echo -e "\n${BLUE}============================================================================================${NC}"
+    echo -e "${BOLD}   📦 Version du client OpenShift (oc)${NC}"
+    echo -e "${BLUE}============================================================================================${NC}"
+    if command -v oc >/dev/null 2>&1; then
+        oc version --client
+    else
+        echo -e " ${RED}Binaire 'oc' introuvable dans le PATH.${NC}"
+    fi
+    echo -e "${BLUE}============================================================================================${NC}"
+    echo -e ""
+    
+    read -p "👉 Appuyez sur Entrée pour revenir au menu..."
+    show_menu
+}
+
 # ==============================================================================
-# 4. MENU DYNAMIQUE
+# 3. MENU DYNAMIQUE
 # ==============================================================================
 
 show_menu() {
@@ -255,6 +296,7 @@ show_menu() {
     # ==== À PARTIR D'ICI : Plus d'encadrement, affichage standard ====
     
     echo -e " Namespace : ${CYAN}$DEFAULT_NAMESPACE${NC}"
+    echo -e " Profil    : ${PURPLE}${PROFILE_NAME}${NC} (${CONFIG_FILE})"
     echo -e " Statut    : ${GREEN}Connecté${NC} | ${YELLOW}Pods actifs: $RUNNING_COUNT${NC}"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
 
@@ -274,6 +316,8 @@ show_menu() {
     fi
 
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
+    echo -e " ${BOLD}${CYAN}99)${NC} Informations de Configuration & Version OC"
+    echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
     echo -e " ${RED}q)${NC} Quitter & Logout      ${RED}x)${NC} Quitter (Garder session)"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '=')${NC}"
     
@@ -285,6 +329,10 @@ show_menu() {
             exit 0 
             ;;
         x) echo "Bye." ; exit 0 ;;
+        99)
+            show_config_info
+            return
+            ;;
     esac
 
     if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || [ "$CHOICE" -lt 1 ] || [ "$CHOICE" -ge $i ]; then
@@ -309,16 +357,24 @@ show_menu() {
 }
 
 # ==============================================================================
-# 5. GESTION DES ARGUMENTS ET LANCEMENT
+# 4. ENTRYPOINT (PARSING ARGUMENTS & LANCEMENT)
 # ==============================================================================
-
-DIRECT_CMD=""
-DRY_RUN="false"
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --dry)
             DRY_RUN="true"
+            ;;
+        -p|--profile)
+            if [ -n "$2" ]; then
+                PROFILE_NAME="$2"
+                PROFILE_LOWER=$(echo "$PROFILE_NAME" | tr '[:upper:]' '[:lower:]')
+                CONFIG_FILE="$SCRIPT_DIR/config-${PROFILE_LOWER}.env"
+                shift
+            else
+                echo -e "${RED}❌ Erreur : l'argument --profile nécessite un nom de profil.${NC}"
+                exit 1
+            fi
             ;;
         -h|--help)
             show_help
@@ -330,7 +386,6 @@ while [[ "$#" -gt 0 ]]; do
                 shift
             else
                 echo -e "${RED}❌ Erreur : l'argument --cmd nécessite le nom d'un script.${NC}"
-                echo -e "Utilisez --help pour plus d'informations."
                 exit 1
             fi
             ;;
@@ -342,6 +397,9 @@ while [[ "$#" -gt 0 ]]; do
     esac
     shift
 done
+
+# Chargement de la configuration sélectionnée (s'il existe, sinon ce sera fait après)
+if [ -f "$CONFIG_FILE" ]; then source "$CONFIG_FILE"; fi
 
 # Lancement principal
 if [ -n "$DIRECT_CMD" ]; then

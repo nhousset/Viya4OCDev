@@ -12,21 +12,16 @@ BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CMD_DIR="$SCRIPT_DIR/cmd"
 CMD_CLI_DIR="$SCRIPT_DIR/cmd_cli"
 
-# Valeurs par défaut (écrasées par les arguments)
 PROFILE_NAME="default"
 CONFIG_FILE="$SCRIPT_DIR/config.env"
 DIRECT_CMD=""
 DRY_RUN="false"
-
-# ==============================================================================
-# 1. FONCTIONS DE GESTION DE CONFIGURATION
-# ==============================================================================
 
 save_to_config() {
     local key=$1
@@ -40,7 +35,6 @@ save_to_config() {
 }
 
 check_and_prompt_vars() {
-    # 0. Environnement
     if [ -z "$ENV_TYPE" ]; then
         echo -e "${YELLOW}Initialisation du profil : ${PROFILE_NAME}${NC}"
         read -p "👉 Type d'environnement (ex: prod, dev, test) : " input_env
@@ -48,7 +42,6 @@ check_and_prompt_vars() {
         save_to_config "ENV_TYPE" "$ENV_TYPE"
     fi
 
-    # 1. Demande de l'URL du Token
     if [ -z "$TOKEN_URL" ]; then
         if [ -n "$ENV_TYPE" ]; then echo -e "${YELLOW}Configuration suite...${NC}"; fi
         echo -e "Pour vous connecter au cluster, vous aurez besoin d'aller chercher un token sur l'interface web OpenShift."
@@ -61,13 +54,11 @@ check_and_prompt_vars() {
         save_to_config "TOKEN_URL" "$TOKEN_URL"
     fi
 
-    # 2. URL du cluster
     if [ -z "$SERVER_URL" ]; then
         read -p "👉 URL du cluster OpenShift : " SERVER_URL
         save_to_config "SERVER_URL" "$SERVER_URL"
     fi
 
-    # 3. Demande du Token
     if [ -z "$TOKEN" ]; then
         if [ -n "$TOKEN_URL" ] && [ "$TOKEN_URL" != "skip" ]; then
             echo -e "\n${PURPLE} ╭───────────────────────────────────────────────────────────${NC}"
@@ -76,12 +67,10 @@ check_and_prompt_vars() {
             echo -e "${PURPLE} │ 🌐 ${BOLD}${CYAN}${TOKEN_URL}${NC}"
             echo -e "${PURPLE} ╰───────────────────────────────────────────────────────────${NC}\n"
         fi
-        read -s -p "👉 Token de connexion OpenShift : " TOKEN
-        echo ""
+        read -s -p "👉 Token de connexion OpenShift : " TOKEN ; echo ""
         save_to_config "TOKEN" "$TOKEN"
     fi
 
-    # 4. Namespace et binaire oc
     if [ -z "$DEFAULT_NAMESPACE" ]; then
         read -p "👉 Namespace SAS Viya [sas-viya] : " input_ns
         DEFAULT_NAMESPACE=${input_ns:-sas-viya}
@@ -96,12 +85,10 @@ check_and_prompt_vars() {
         export PATH="$(dirname "$OC_BIN_PATH"):$PATH"
     fi
 
-    # 5. Configuration SAS Viya CLI
     if [ -z "$SAS_CLI_PATH" ] && [ "$SKIP_SAS_CLI" != "true" ]; then
         echo ""
         read -p "👉 Voulez-vous configurer SAS Viya CLI ? (O/n) : " configure_sas
         if [[ "$configure_sas" =~ ^[nN]$ ]]; then
-            # Si l'utilisateur répond N ou n, on retient de ne plus lui demander
             save_to_config "SKIP_SAS_CLI" "true"
         else
             read -p "👉 Chemin COMPLET du binaire sas-viya : " SAS_CLI_PATH
@@ -111,6 +98,16 @@ check_and_prompt_vars() {
     
     if [ -n "$SAS_CLI_PATH" ] && [ -f "$SAS_CLI_PATH" ]; then
         export PATH="$(dirname "$SAS_CLI_PATH"):$PATH"
+        
+        # AJOUT : Sauvegarde de l'URL SAS Viya au niveau du profil global
+        if [ -z "$SAS_VIYA_URL" ]; then
+            read -p "👉 URL de l'API SAS Viya (ex: https://viya.monsite.com) : " SAS_VIYA_URL
+            while [ -z "$SAS_VIYA_URL" ]; do
+                echo -e "${RED}⚠️ L'URL de SAS Viya est obligatoire.${NC}"
+                read -p "👉 URL de l'API SAS Viya : " SAS_VIYA_URL
+            done
+            save_to_config "SAS_VIYA_URL" "$SAS_VIYA_URL"
+        fi
     fi
     
     [ -z "$INSECURE_SKIP_TLS_VERIFY" ] && save_to_config "INSECURE_SKIP_TLS_VERIFY" "true"
@@ -118,7 +115,6 @@ check_and_prompt_vars() {
 }
 
 do_login() {
-    # Bypass complet si on est en --dry
     if [ "$DRY_RUN" == "true" ]; then
         echo -e "${YELLOW}⚠️ Mode DRY RUN activé : Contournement de la connexion OpenShift.${NC}"
         export DEFAULT_NAMESPACE=${DEFAULT_NAMESPACE:-"sas-viya-dryrun"}
@@ -140,8 +136,6 @@ do_login() {
         oc project "$DEFAULT_NAMESPACE" >/dev/null 2>&1
     else
         echo -e "${RED}❌ Token invalide ou expiré.${NC}"
-        
-        # Affichage du rappel sympa d'URL si le token a expiré
         echo -e "\n${PURPLE} ╭───────────────────────────────────────────────────────────${NC}"
         echo -e "${PURPLE} │ ${YELLOW}💡 Oups ! Votre token est invalide ou a expiré.${NC}"
         if [ -n "$TOKEN_URL" ] && [ "$TOKEN_URL" != "skip" ]; then
@@ -164,10 +158,6 @@ do_login() {
         fi
     fi
 }
-
-# ==============================================================================
-# 2. AFFICHAGE ET UTILITAIRES
-# ==============================================================================
 
 show_disclaimer() {
     if [ "$DISCLAIMER_ACCEPTED" != "true" ]; then
@@ -192,9 +182,7 @@ show_disclaimer() {
         echo -e " PRODUCTION par inadvertance !"
         echo -e ""
         echo -e "${RED}$(printf '%*s' 92 | tr ' ' '=')${NC}"
-        
         read -p " 👉 Appuyez sur Entrée pour accepter ces conditions et continuer..."
-        
         DISCLAIMER_ACCEPTED="true"
         save_to_config "DISCLAIMER_ACCEPTED" "true"
     fi
@@ -219,13 +207,7 @@ show_help() {
     echo -e "${BOLD}Options:${NC}"
     echo -e "  ${CYAN}-h, --help${NC}           Affiche cet écran d'aide."
     echo -e "  ${CYAN}-p, --profile <nom>${NC}  Charge un profil spécifique (ex: -p PROD charge config-prod.env)."
-    echo -e "                       Si le fichier n'existe pas, un nouveau profil est configuré."
     echo -e "  ${CYAN}--cmd <script.sh>${NC}    Exécute directement un script sans passer par le menu."
-    echo -e ""
-    echo -e "${BOLD}Exemples:${NC}"
-    echo -e "  ./viya.sh                        ${CYAN}# Lance le menu avec le profil par défaut${NC}"
-    echo -e "  ./viya.sh --profile PROD         ${CYAN}# Lance le menu avec la config config-prod.env${NC}"
-    echo -e "  ./viya.sh --cmd check_status.sh  ${CYAN}# Exécute directement un script${NC}"
     echo -e ""
 }
 
@@ -285,21 +267,15 @@ show_config_info() {
     show_menu
 }
 
-# ==============================================================================
-# 3. MENU DYNAMIQUE
-# ==============================================================================
-
 show_menu() {
     do_login 
     
-    # Calcul du nombre de pods en cours d'exécution ou mock si Dry Run
     if [ "$DRY_RUN" == "true" ]; then
         local RUNNING_COUNT="[DRY-RUN]"
     else
         local RUNNING_COUNT=$(oc get pods -n "$DEFAULT_NAMESPACE" --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
     fi
 
-    # Calcul des ressources (CPU & MEM)
     local RES_CPU="N/A"
     local RES_MEM="N/A"
     
@@ -307,16 +283,13 @@ show_menu() {
         local QUOTA_OUT=$(oc describe resourcequota -n "$DEFAULT_NAMESPACE" 2>/dev/null | awk '
         /limits.cpu/ {
             cpu_used=$2; cpu_hard=$3;
-            
             if (cpu_used ~ /m/) { sub("m","",cpu_used); cpu_used_cores = cpu_used / 1000; } else { cpu_used_cores = cpu_used + 0; }
-            
             cpu_hard_num = cpu_hard + 0;
             if (cpu_hard_num > 0) { cpu_pct = (cpu_used_cores / cpu_hard_num) * 100; } else { cpu_pct = 0; }
             has_quota = 1;
         }
         /limits.memory/ {
             mem_used=$2; mem_hard=$3;
-            
             if (mem_used ~ /Ti/) { sub("Ti","",mem_used); mem_used_bytes = mem_used * 1024^4; }
             else if (mem_used ~ /Gi/) { sub("Gi","",mem_used); mem_used_bytes = mem_used * 1024^3; }
             else if (mem_used ~ /Mi/) { sub("Mi","",mem_used); mem_used_bytes = mem_used * 1024^2; }
@@ -337,27 +310,21 @@ show_menu() {
             }
         }
         ')
-
         if [ -n "$QUOTA_OUT" ]; then
             RES_CPU=$(echo "$QUOTA_OUT" | awk -F';' '/^CPU/ {print $3}')
             RES_MEM=$(echo "$QUOTA_OUT" | awk -F';' '/^MEMORY/ {print $4}')
         fi
     fi
 
-    # Vérification si on est en environnement de PROD
     local IS_PROD="false"
     if [[ "${ENV_TYPE,,}" == *"prod"* ]]; then
         IS_PROD="true"
     fi
-    
-    # Largeur interne du menu
     local IW=92
 
-    # Fonction pour encadrer uniquement le texte du Header si on est en Prod
     m_echo() {
         local text="$1"
         if [ "$IS_PROD" == "true" ]; then
-            # Retrait des codes couleurs ANSI pour calculer la vraie longueur du texte
             local clean_text=$(echo -e "$text" | sed 's/\x1b\[[0-9;]*m//g')
             local len=${#clean_text}
             local pad=$((IW - len))
@@ -374,7 +341,6 @@ show_menu() {
         m_echo " ${BOLD}${RED}!!! ATTENTION - ENVIRONNEMENT DE PRODUCTION !!!${NC}"
     fi
 
-    # L'ASCII Art (encadré si PROD, normal sinon)
     m_echo "${CYAN}  ____       _      ____   __     __ ___  __   __     _       _  _     ___   ____   ____  ${NC}"
     m_echo "${CYAN} / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /   / \     | || |   / _ \ |  _ \ / ___| ${NC}"
     m_echo "${CYAN} \___ \    / _ \   \___ \   \ \ / /   | |   \ V /   / _ \    | || |_ | | | || |_) |\___ \ ${NC}"
@@ -396,14 +362,11 @@ show_menu() {
         echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '=')${NC}"
     fi
 
-    # ==== À PARTIR D'ICI : Plus d'encadrement, affichage standard ====
-    
-    # Statut SAS CLI
+    # AJOUT : Statut SAS CLI spécifique au profil
     local SAS_STATUS="${RED}Non installé${NC}"
     if command -v sas-viya >/dev/null 2>&1; then
         SAS_STATUS="${YELLOW}Non connecté${NC}"
-        # Vérification très rapide de la présence d'un token dans le fichier de config SAS local
-        if [ -f "$HOME/.sas/credentials.json" ] && grep -q "\"access_token\"" "$HOME/.sas/credentials.json"; then
+        if [ -f "$HOME/.sas/credentials.json" ] && grep -q "\"$PROFILE_NAME\"" "$HOME/.sas/credentials.json"; then
             SAS_STATUS="${GREEN}Connecté${NC}"
         fi
     fi
@@ -422,7 +385,6 @@ show_menu() {
     local all_files=()
     local i=1
 
-    # ===== SECTION 1 : cmd/ =====
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
     echo -e "${BOLD}${PURPLE} 📁 Plugins OpenShift${NC}"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
@@ -439,7 +401,6 @@ show_menu() {
         done
     fi
 
-    # ===== SECTION 2 : cmd_cli/ =====
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
     echo -e "${BOLD}${PURPLE} 📁 Plugins SAS Viya CLI${NC}"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
@@ -484,11 +445,11 @@ show_menu() {
     echo -e "\n${YELLOW}🚀 Lancement : $(basename "$SELECTED_SCRIPT")${NC}"
     echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
     
-    # Affichage du panneau d'avertissement de Production juste avant le script
     print_prod_banner
     
     chmod +x "$SELECTED_SCRIPT"
-    export DEFAULT_NAMESPACE AUDIT_OUT_DIR DRY_RUN
+    # Export des variables clés pour éviter que les sous-scripts n'aient à les redemander
+    export DEFAULT_NAMESPACE AUDIT_OUT_DIR DRY_RUN PROFILE_NAME SAS_VIYA_URL
     
     "$SELECTED_SCRIPT"
     
@@ -497,15 +458,9 @@ show_menu() {
     show_menu
 }
 
-# ==============================================================================
-# 4. ENTRYPOINT (PARSING ARGUMENTS & LANCEMENT)
-# ==============================================================================
-
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        --dry)
-            DRY_RUN="true"
-            ;;
+        --dry) DRY_RUN="true" ;;
         -p|--profile)
             if [ -n "$2" ]; then
                 PROFILE_NAME="$2"
@@ -517,10 +472,7 @@ while [[ "$#" -gt 0 ]]; do
                 exit 1
             fi
             ;;
-        -h|--help)
-            show_help
-            exit 0
-            ;;
+        -h|--help) show_help ; exit 0 ;;
         --cmd)
             if [ -n "$2" ]; then
                 DIRECT_CMD="$2"
@@ -532,45 +484,38 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         *)
             echo -e "${RED}❌ Option inconnue : $1${NC}"
-            echo -e "Utilisez --help pour plus d'informations."
             exit 1
             ;;
     esac
     shift
 done
 
-# Chargement de la configuration sélectionnée (s'il existe, sinon ce sera fait après)
 if [ -f "$CONFIG_FILE" ]; then source "$CONFIG_FILE"; fi
 
-# Affichage du disclaimer (si non accepté dans ce profil)
 show_disclaimer
 
-# Lancement principal
 if [ -n "$DIRECT_CMD" ]; then
     TARGET_SCRIPT="$CMD_DIR/$DIRECT_CMD"
     if [ ! -f "$TARGET_SCRIPT" ]; then
         TARGET_SCRIPT="$CMD_CLI_DIR/$DIRECT_CMD"
         if [ ! -f "$TARGET_SCRIPT" ]; then
-            echo -e "${RED}❌ Erreur : Le script '${DIRECT_CMD}' est introuvable ni dans '${CMD_DIR}' ni dans '${CMD_CLI_DIR}'.${NC}"
+            echo -e "${RED}❌ Erreur : Le script '${DIRECT_CMD}' est introuvable.${NC}"
             exit 1
         fi
     fi
     
-    # Authentification requise même en mode direct (sauf en dry-run)
     do_login
     
     echo -e "\n${YELLOW}🚀 Lancement direct : ${DIRECT_CMD}${NC}"
     echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
     
-    # Affichage du panneau d'avertissement de Production en ligne de commande direct
     print_prod_banner
     
     chmod +x "$TARGET_SCRIPT"
-    export DEFAULT_NAMESPACE AUDIT_OUT_DIR DRY_RUN
+    export DEFAULT_NAMESPACE AUDIT_OUT_DIR DRY_RUN PROFILE_NAME SAS_VIYA_URL
     
     "$TARGET_SCRIPT"
     exit $?
 else
-    # Lancement du menu par défaut
     show_menu
 fi

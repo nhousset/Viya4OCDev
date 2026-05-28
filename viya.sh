@@ -94,6 +94,23 @@ check_and_prompt_vars() {
     if [ -n "$OC_BIN_PATH" ] && [ -f "$OC_BIN_PATH" ]; then
         export PATH="$(dirname "$OC_BIN_PATH"):$PATH"
     fi
+
+    # 5. Configuration SAS Viya CLI
+    if [ -z "$SAS_CLI_PATH" ] && [ "$SKIP_SAS_CLI" != "true" ]; then
+        echo ""
+        read -p "👉 Voulez-vous configurer SAS Viya CLI ? (O/n) : " configure_sas
+        if [[ "$configure_sas" =~ ^[nN]$ ]]; then
+            # Si l'utilisateur répond N ou n, on retient de ne plus lui demander
+            save_to_config "SKIP_SAS_CLI" "true"
+        else
+            read -p "👉 Chemin COMPLET du binaire sas-viya : " SAS_CLI_PATH
+            save_to_config "SAS_CLI_PATH" "$SAS_CLI_PATH"
+        fi
+    fi
+    
+    if [ -n "$SAS_CLI_PATH" ] && [ -f "$SAS_CLI_PATH" ]; then
+        export PATH="$(dirname "$SAS_CLI_PATH"):$PATH"
+    fi
     
     [ -z "$INSECURE_SKIP_TLS_VERIFY" ] && save_to_config "INSECURE_SKIP_TLS_VERIFY" "true"
     [ -z "$AUDIT_OUT_DIR" ] && save_to_config "AUDIT_OUT_DIR" "$SCRIPT_DIR/rapports_audit"
@@ -250,6 +267,15 @@ show_config_info() {
         oc version --client
     else
         echo -e " ${RED}Binaire 'oc' introuvable dans le PATH.${NC}"
+    fi
+    
+    echo -e "\n${BLUE}============================================================================================${NC}"
+    echo -e "${BOLD}   📦 Version du client SAS Viya (sas-viya)${NC}"
+    echo -e "${BLUE}============================================================================================${NC}"
+    if command -v sas-viya >/dev/null 2>&1; then
+        sas-viya version
+    else
+        echo -e " ${RED}Binaire 'sas-viya' introuvable dans le PATH.${NC}"
     fi
     echo -e "${BLUE}============================================================================================${NC}"
     echo -e ""

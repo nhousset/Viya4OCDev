@@ -272,6 +272,51 @@ show_menu() {
         local RUNNING_COUNT=$(oc get pods -n "$DEFAULT_NAMESPACE" --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
     fi
 
+    # Calcul des ressources (CPU & MEM)
+    local RES_CPU="N/A"
+    local RES_MEM="N/A"
+    
+    if [ "$DRY_RUN" != "true" ]; then
+        local QUOTA_OUT=$(oc describe resourcequota -n "$DEFAULT_NAMESPACE" 2>/dev/null | awk '
+        /limits.cpu/ {
+            cpu_used=$2; cpu_hard=$3;
+            
+            if (cpu_used ~ /m/) { sub("m","",cpu_used); cpu_used_cores = cpu_used / 1000; } else { cpu_used_cores = cpu_used + 0; }
+            
+            cpu_hard_num = cpu_hard + 0;
+            if (cpu_hard_num > 0) { cpu_pct = (cpu_used_cores / cpu_hard_num) * 100; } else { cpu_pct = 0; }
+            has_quota = 1;
+        }
+        /limits.memory/ {
+            mem_used=$2; mem_hard=$3;
+            
+            if (mem_used ~ /Ti/) { sub("Ti","",mem_used); mem_used_bytes = mem_used * 1024^4; }
+            else if (mem_used ~ /Gi/) { sub("Gi","",mem_used); mem_used_bytes = mem_used * 1024^3; }
+            else if (mem_used ~ /Mi/) { sub("Mi","",mem_used); mem_used_bytes = mem_used * 1024^2; }
+            else { sub("Ki","",mem_used); mem_used_bytes = mem_used * 1024; }
+            
+            if (mem_hard ~ /Ti/) { sub("Ti","",mem_hard); mem_hard_bytes = mem_hard * 1024^4; }
+            else if (mem_hard ~ /Gi/) { sub("Gi","",mem_hard); mem_hard_bytes = mem_hard * 1024^3; }
+            else if (mem_hard ~ /Mi/) { sub("Mi","",mem_hard); mem_hard_bytes = mem_hard * 1024^2; }
+            else { sub("Ki","",mem_hard); mem_hard_bytes = mem_hard * 1024; }
+            
+            if (mem_hard_bytes > 0) { mem_pct = (mem_used_bytes / mem_hard_bytes) * 100; } else { mem_pct = 0; }
+            has_quota = 1;
+        }
+        END {
+            if (has_quota) {
+                printf "CPU;%.3f/%s;%.2f%%\n", cpu_used_cores, cpu_hard, cpu_pct;
+                printf "MEMORY;%.0f;%.0f;%.2f%%\n", mem_used_bytes, mem_hard_bytes, mem_pct;
+            }
+        }
+        ')
+
+        if [ -n "$QUOTA_OUT" ]; then
+            RES_CPU=$(echo "$QUOTA_OUT" | awk -F';' '/^CPU/ {print $3}')
+            RES_MEM=$(echo "$QUOTA_OUT" | awk -F';' '/^MEMORY/ {print $4}')
+        fi
+    fi
+
     # Vérification si on est en environnement de PROD
     local IS_PROD="false"
     if [[ "${ENV_TYPE,,}" == *"prod"* ]]; then
@@ -328,7 +373,7 @@ show_menu() {
     
     echo -e " Namespace : ${CYAN}$DEFAULT_NAMESPACE${NC}"
     echo -e " Profil    : ${PURPLE}${PROFILE_NAME}${NC} (${CONFIG_FILE})"
-    echo -e " Statut    : ${GREEN}Connecté${NC} | ${YELLOW}Pods actifs: $RUNNING_COUNT${NC}"
+    echo -e " Statut    : ${GREEN}Connecté${NC} | Pods: ${YELLOW}$RUNNING_COUNT${NC} | CPU: ${PURPLE}${RES_CPU}${NC} | RAM: ${PURPLE}${RES_MEM}${NC}"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
 
     if [ ! -d "$CMD_DIR" ]; then mkdir -p "$CMD_DIR"; fi

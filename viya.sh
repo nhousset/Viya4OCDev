@@ -206,8 +206,9 @@ show_help() {
     echo -e ""
     echo -e "${BOLD}Options:${NC}"
     echo -e "  ${CYAN}-h, --help${NC}           Affiche cet écran d'aide."
-    echo -e "  ${CYAN}-p, --profile <nom>${NC}  Charge un profil spécifique (ex: -p prod charge config-prod.env)."
+    echo -e "  ${CYAN}-p, --profile <nom>${NC}  Charge un profil spécifique (ex: -p PROD charge config-prod.env)."
     echo -e "  ${CYAN}-l, --list${NC}           Liste tous les profils configurés sans se connecter au cluster."
+    echo -e "  ${CYAN}-t, --tokens${NC}         Affiche les tokens enregistrés pour chaque profil (masqués partiellement)."
     echo -e "  ${CYAN}--cmd <script.sh>${NC}    Exécute directement un script sans passer par le menu."
     echo -e "  ${CYAN}--dry${NC}                Lance l'outil sans exiger de connexion au cluster (Mode test)."
     echo -e ""
@@ -246,6 +247,56 @@ list_profiles() {
 
     if [ $count -eq 0 ]; then
         echo -e " ${YELLOW}Aucun profil configuré pour le moment. Lancez le script pour créer le premier.${NC}"
+    fi
+    exit 0
+}
+
+list_tokens() {
+    clear
+    echo -e "${BLUE}============================================================================================${NC}"
+    echo -e "${BOLD}   🔑 Tokens enregistrés par profil${NC}"
+    echo -e "${BLUE}============================================================================================${NC}"
+    echo -e " ${RED}⚠️  Sécurité : Pour éviter les fuites lors de partages d'écran, les tokens sont masqués.${NC}"
+    echo -e " ${RED}    Pour copier un token complet, lisez directement le fichier .env correspondant.${NC}"
+    echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
+    
+    local count=0
+    
+    # Parcours des fichiers de configuration
+    for f in "$SCRIPT_DIR"/config*.env; do
+        [ -e "$f" ] || continue
+        ((count++))
+        local filename=$(basename "$f")
+        local prof="default"
+        
+        if [[ "$filename" == config-*.env ]]; then
+            prof=$(echo "$filename" | sed 's/config-//' | sed 's/\.env//')
+        fi
+        
+        local url=$(grep "^export SERVER_URL=" "$f" | cut -d'"' -f2)
+        local token=$(grep "^export TOKEN=" "$f" | cut -d'"' -f2)
+        
+        echo -e " 🔹 Profil : ${BOLD}${CYAN}${prof}${NC} (Fichier : ${filename})"
+        echo -e "    URL    : ${url:-N/A}"
+        
+        if [ -n "$token" ]; then
+            local length=${#token}
+            if [ $length -gt 15 ]; then
+                # On affiche les 12 premiers caractères et les 5 derniers
+                local prefix="${token:0:12}"
+                local suffix="${token: -5}"
+                echo -e "    Token  : ${YELLOW}${prefix}...[MASQUÉ]...${suffix}${NC}"
+            else
+                echo -e "    Token  : ${YELLOW}${token}${NC}"
+            fi
+        else
+            echo -e "    Token  : ${RED}Aucun token enregistré${NC}"
+        fi
+        echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
+    done
+
+    if [ $count -eq 0 ]; then
+        echo -e " ${YELLOW}Aucun profil configuré pour le moment.${NC}"
     fi
     exit 0
 }
@@ -514,6 +565,7 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         -h|--help) show_help ; exit 0 ;;
         -l|--list) list_profiles ; exit 0 ;;
+        -t|--tokens) list_tokens ; exit 0 ;;
         --cmd)
             if [ -n "$2" ]; then
                 DIRECT_CMD="$2"

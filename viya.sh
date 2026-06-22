@@ -228,12 +228,10 @@ list_profiles() {
         local filename=$(basename "$f")
         local prof="default"
         
-        # Extraction du nom du profil basé sur le nom du fichier
         if [[ "$filename" == config-*.env ]]; then
             prof=$(echo "$filename" | sed 's/config-//' | sed 's/\.env//')
         fi
         
-        # Lecture silencieuse des variables clés
         local url=$(grep "^export SERVER_URL=" "$f" | cut -d'"' -f2)
         local ns=$(grep "^export DEFAULT_NAMESPACE=" "$f" | cut -d'"' -f2)
         local env_type=$(grep "^export ENV_TYPE=" "$f" | cut -d'"' -f2)
@@ -262,7 +260,6 @@ list_tokens() {
     
     local count=0
     
-    # Parcours des fichiers de configuration
     for f in "$SCRIPT_DIR"/config*.env; do
         [ -e "$f" ] || continue
         ((count++))
@@ -282,7 +279,6 @@ list_tokens() {
         if [ -n "$token" ]; then
             local length=${#token}
             if [ $length -gt 15 ]; then
-                # On affiche les 12 premiers caractères et les 5 derniers
                 local prefix="${token:0:12}"
                 local suffix="${token: -5}"
                 echo -e "    Token  : ${YELLOW}${prefix}...[MASQUÉ]...${suffix}${NC}"
@@ -305,6 +301,43 @@ print_prod_banner() {
     if [[ "${ENV_TYPE,,}" == *"prod"* ]]; then
         echo -e "${BOLD}${RED}+------------------------------------ ⚠️  PRODUCTION ⚠️  ------------------------------------+${NC}"
     fi
+}
+
+refresh_token() {
+    clear
+    echo -e "${BLUE}============================================================================================${NC}"
+    echo -e "${BOLD}   🔄 Renouvellement du Token OpenShift${NC}"
+    echo -e "${BLUE}============================================================================================${NC}"
+    echo -e "   Profil actuel : ${CYAN}${PROFILE_NAME}${NC}"
+    
+    if [ -n "$TOKEN_URL" ] && [ "$TOKEN_URL" != "skip" ]; then
+        echo -e "   🌐 Lien pour générer le token : ${BOLD}${CYAN}${TOKEN_URL}${NC}"
+    fi
+    echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
+    
+    read -s -p "👉 Nouveau Token (laissez vide pour annuler) : " NEW_TOKEN ; echo ""
+    
+    if [ -z "$NEW_TOKEN" ]; then
+        echo -e "${YELLOW}Annulation. Le token n'a pas été modifié.${NC}"
+    else
+        TOKEN="$NEW_TOKEN"
+        save_to_config "TOKEN" "$TOKEN"
+        
+        local TLS_OPT=""
+        [ "$INSECURE_SKIP_TLS_VERIFY" == "true" ] && TLS_OPT="--insecure-skip-tls-verify=true"
+        
+        echo -e "\n${CYAN}🔌 Test de connexion avec le nouveau token...${NC}"
+        if oc login "$SERVER_URL" --token="$TOKEN" $TLS_OPT >/dev/null 2>&1; then
+            echo -e "${GREEN}✅ Connexion réussie. Le token a été mis à jour avec succès.${NC}"
+            oc project "$DEFAULT_NAMESPACE" >/dev/null 2>&1
+        else
+            echo -e "${RED}❌ Échec de la connexion. Le token semble invalide.${NC}"
+        fi
+    fi
+    
+    echo ""
+    read -p "👉 Appuyez sur Entrée pour revenir au menu..."
+    show_menu
 }
 
 show_config_info() {
@@ -452,7 +485,6 @@ show_menu() {
         echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '=')${NC}"
     fi
 
-    # AJOUT : Statut SAS CLI spécifique au profil
     local SAS_STATUS="${RED}Non installé${NC}"
     if command -v sas-viya >/dev/null 2>&1; then
         SAS_STATUS="${YELLOW}Non connecté${NC}"
@@ -508,6 +540,7 @@ show_menu() {
     fi
 
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
+    echo -e " ${BOLD}${CYAN}98)${NC} Rafraîchir le token OpenShift"
     echo -e " ${BOLD}${CYAN}99)${NC} Informations de Configuration & Versions"
     echo -e "${BLUE}$(printf '%*s' "$IW" | tr ' ' '-')${NC}"
     echo -e " ${RED}q)${NC} Quitter & Logout      ${RED}x)${NC} Quitter (Garder session)"
@@ -521,6 +554,10 @@ show_menu() {
             exit 0 
             ;;
         x) echo "Bye." ; exit 0 ;;
+        98)
+            refresh_token
+            return
+            ;;
         99)
             show_config_info
             return
@@ -538,7 +575,6 @@ show_menu() {
     print_prod_banner
     
     chmod +x "$SELECTED_SCRIPT"
-    # Export des variables clés pour éviter que les sous-scripts n'aient à les redemander
     export DEFAULT_NAMESPACE AUDIT_OUT_DIR DRY_RUN PROFILE_NAME SAS_VIYA_URL
     
     "$SELECTED_SCRIPT"
@@ -548,7 +584,6 @@ show_menu() {
     show_menu
 }
 
-# Analyse des arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --dry) DRY_RUN="true" ;;

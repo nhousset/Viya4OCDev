@@ -2,7 +2,7 @@
 # TITLE: Gestion des Sauvegardes & PRA (Backups Viya)
 
 # ==============================================================================
-# Fichier : 05_backup_manager.sh
+# Fichier : 16_backup_manager.sh
 # Description : Boîte à outils d'administration des sauvegardes SAS Viya 4
 # ==============================================================================
 
@@ -23,38 +23,90 @@ get_timestamp() {
 
 # Fonction principale pour afficher le menu interactif complet
 manage_backups_loop() {
+    # Détection de l'environnement de PROD pour l'affichage du cadre rouge
+    local IS_PROD="false"
+    if [[ "${ENV_TYPE,,}" == *"prod"* ]]; then
+        IS_PROD="true"
+    fi
+    local IW=92
+
+    # Fonction d'encadrement dynamique du texte
+    m_echo() {
+        local text="$1"
+        if [ "$IS_PROD" == "true" ]; then
+            local clean_text=$(echo -e "$text" | sed 's/\x1b\[[0-9;]*m//g')
+            local len=${#clean_text}
+            local pad=$((IW - len))
+            [ $pad -lt 0 ] && pad=0
+            echo -e "${RED}|${NC}${text}$(printf '%*s' "$pad" "")${RED}|${NC}"
+        else
+            echo -e "${text}"
+        fi
+    }
+
+    # Codes de coloration pour sed (pour les statuts Completed/Failed)
+    local C_GREEN=$(printf '\033[0;32mCompleted\033[0m')
+    local C_RED=$(printf '\033[0;31mFailed\033[0m')
+
     while true; do
         clear
-        echo -e "${BLUE}============================================================================================${NC}"
-        echo -e "${BOLD}   📦 OUTILLAGE ET GESTION DES SAUVEGARDES SAS VIYA 4${NC}"
-        echo -e "   Namespace courant : ${CYAN}${DEFAULT_NAMESPACE:-'Par défaut'}${NC} | Commande : ${CYAN}${OC_CMD:-oc}${NC}"
-        echo -e "${BLUE}============================================================================================${NC}"
         
-        echo -e "  ${YELLOW}--- SURVEILLANCE & INFRASTRUCTURE ---${NC}"
-        echo -e "  ${BOLD}${CYAN}1)${NC} Vérifier les volumes de stockage des sauvegardes (PVC & Rôles)"
-        echo -e "  ${BOLD}${CYAN}2)${NC} Lister l'historique global de TOUTES les sauvegardes exécutées"
-        echo -e "  ${BOLD}${CYAN}3)${NC} Filtrer les sauvegardes incluant PostgreSQL (INCLUDE_POSTGRES=true)"
-        echo -e "  ${BOLD}${CYAN}4)${NC} Filtrer les sauvegardes excluant PostgreSQL (INCLUDE_POSTGRES=false)"
-        echo -e "  ${BOLD}${CYAN}5)${NC} Consulter l'état des planifications automatiques (CronJobs)"
-        echo ""
-        echo -e "  ${YELLOW}--- RECHERCHE & DIAGNOSTIC CIBLÉ ---${NC}"
-        echo -e "  ${BOLD}${CYAN}6)${NC} Obtenir le statut précis d'une sauvegarde via son ID (Backup ID)"
-        echo -e "  ${BOLD}${CYAN}7)${NC} Inspecter les détails et les types de sources d'un Backup"
-        echo -e "  ${BOLD}${CYAN}8)${NC} Suivre l'avancement en temps réel / Temps restant estimé (Progress)"
-        echo -e "  ${BOLD}${CYAN}9)${NC} Consulter les logs d'un job de sauvegarde spécifique"
-        echo ""
-        echo -e "  ${YELLOW}--- DÉCLENCHEMENT DE SAUVEGARDES (AD-HOC) ---${NC}"
-        echo -e "  ${BOLD}${CYAN}10)${NC} Lancer une sauvegarde Ad-Hoc Standard (Full)"
-        echo -e "  ${BOLD}${CYAN}11)${NC} Lancer une sauvegarde Ad-Hoc Incrémentale (Nécessite une Full préalable)"
-        echo -e "  ${BOLD}${CYAN}12)${NC} Lancer une sauvegarde Totale Forcée (All Sources avec PostgreSQL)"
-        echo ""
-        echo -e "  ${YELLOW}--- CONFIGURATION AVANCÉE & DÉPANNAGE ---${NC}"
-        echo -e "  ${BOLD}${CYAN}13)${NC} Consulter le CronJob de purge automatique (sas-backup-purge-job)"
-        echo -e "  ${BOLD}${CYAN}14)${NC} ${PURPLE}[Dépannage]${NC} Désactiver la validation d'espace disque (Patch DISABLE_VALIDATION=true)"
-        echo -e "  ${BOLD}${CYAN}15)${NC} ${PURPLE}[Dépannage]${NC} Réactiver la validation d'espace disque (Patch DISABLE_VALIDATION=false)"
-        echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
-        echo -e "  ${RED}r)${NC} Retour au menu d'administration principal"
-        echo -e "${BLUE}============================================================================================${NC}"
+        # Haut du cadre de PROD
+        if [ "$IS_PROD" == "true" ]; then
+            echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' '-')+${NC}"
+            m_echo " ${BOLD}${RED}!!! ATTENTION - ENVIRONNEMENT DE PRODUCTION !!!${NC}"
+            echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' '=')+${NC}"
+        else
+            echo -e "${BLUE}============================================================================================${NC}"
+        fi
+
+        m_echo "${BOLD}   📦 OUTILLAGE ET GESTION DES SAUVEGARDES SAS VIYA 4${NC}"
+        m_echo "   Namespace courant : ${CYAN}${DEFAULT_NAMESPACE:-'Par défaut'}${NC} | Commande : ${CYAN}${OC_CMD:-oc}${NC}"
+        
+        if [ "$IS_PROD" == "true" ]; then
+            echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' '=')+${NC}"
+        else
+            echo -e "${BLUE}============================================================================================${NC}"
+        fi
+        
+        m_echo "  ${YELLOW}--- SURVEILLANCE & INFRASTRUCTURE ---${NC}"
+        m_echo "  ${BOLD}${CYAN}1)${NC} Vérifier les volumes de stockage des sauvegardes (PVC & Rôles)"
+        m_echo "  ${BOLD}${CYAN}2)${NC} Lister l'historique global de TOUTES les sauvegardes exécutées"
+        m_echo "  ${BOLD}${CYAN}3)${NC} Filtrer les sauvegardes incluant PostgreSQL (INCLUDE_POSTGRES=true)"
+        m_echo "  ${BOLD}${CYAN}4)${NC} Filtrer les sauvegardes excluant PostgreSQL (INCLUDE_POSTGRES=false)"
+        m_echo "  ${BOLD}${CYAN}5)${NC} Consulter l'état des planifications automatiques (CronJobs)"
+        m_echo ""
+        m_echo "  ${YELLOW}--- RECHERCHE & DIAGNOSTIC CIBLÉ ---${NC}"
+        m_echo "  ${BOLD}${CYAN}6)${NC} Obtenir le statut précis d'une sauvegarde via son ID (Backup ID)"
+        m_echo "  ${BOLD}${CYAN}7)${NC} Inspecter les détails et les types de sources d'un Backup"
+        m_echo "  ${BOLD}${CYAN}8)${NC} Suivre l'avancement en temps réel / Temps restant estimé (Progress)"
+        m_echo "  ${BOLD}${CYAN}9)${NC} Consulter les logs d'un job de sauvegarde spécifique"
+        m_echo ""
+        m_echo "  ${YELLOW}--- DÉCLENCHEMENT DE SAUVEGARDES (AD-HOC) ---${NC}"
+        m_echo "  ${BOLD}${CYAN}10)${NC} Lancer une sauvegarde Ad-Hoc Standard (Full)"
+        m_echo "  ${BOLD}${CYAN}11)${NC} Lancer une sauvegarde Ad-Hoc Incrémentale (Nécessite une Full préalable)"
+        m_echo "  ${BOLD}${CYAN}12)${NC} Lancer une sauvegarde Totale Forcée (All Sources avec PostgreSQL)"
+        m_echo ""
+        m_echo "  ${YELLOW}--- CONFIGURATION AVANCÉE & DÉPANNAGE ---${NC}"
+        m_echo "  ${BOLD}${CYAN}13)${NC} Consulter le CronJob de purge automatique (sas-backup-purge-job)"
+        m_echo "  ${BOLD}${CYAN}14)${NC} ${PURPLE}[Dépannage]${NC} Désactiver la validation d'espace disque (DISABLE_VALIDATION=true)"
+        m_echo "  ${BOLD}${CYAN}15)${NC} ${PURPLE}[Dépannage]${NC} Réactiver la validation d'espace disque (DISABLE_VALIDATION=false)"
+        
+        if [ "$IS_PROD" == "true" ]; then
+            echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' '-')+${NC}"
+        else
+            echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
+        fi
+        
+        m_echo "  ${RED}r)${NC} Retour au menu d'administration principal"
+        
+        # Bas du cadre de PROD
+        if [ "$IS_PROD" == "true" ]; then
+            echo -e "${RED}+$(printf '%*s' "$IW" | tr ' ' '=')+${NC}"
+        else
+            echo -e "${BLUE}============================================================================================${NC}"
+        fi
+        
         read -p "👉 Sélectionnez une action (1-15) ou 'r' pour quitter : " MENU_CHOICE
         echo ""
 
@@ -65,25 +117,25 @@ manage_backups_loop() {
                 ${OC_CMD:-oc} get pvc -l "sas.com/backup-role=storage"
                 ;;
             2)
-                echo -e "${CYAN}📜 [Doc p.18] Liste exhaustive de l'historique des sauvegardes (Trié par date de début)...${NC}"
+                echo -e "${CYAN}📜 [Doc p.18] Liste exhaustive de l'historique des sauvegardes (Classé par AGE)...${NC}"
                 echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
                 ${OC_CMD:-oc} get jobs -l "sas.com/backup-job-type in (scheduled-backup, scheduled-backup-incremental)" \
                     -L "sas.com/sas-backup-id,sas.com/backup-job-type,sas.com/sas-backup-job-status,sas.com/sas-backup-persistence-status,sas.com/sas-backup-include-postgres" \
-                    --sort-by=.status.startTime
+                    --sort-by=.metadata.creationTimestamp | sed -e "s/Completed/${C_GREEN}/g" -e "s/Failed/${C_RED}/g"
                 ;;
             3)
-                echo -e "${CYAN}📜 [Doc p.18] Sauvegardes contenant la base PostgreSQL (INCLUDE_POSTGRES=true)...${NC}"
+                echo -e "${CYAN}📜 [Doc p.18] Sauvegardes contenant la base PostgreSQL (INCLUDE_POSTGRES=true) (Classé par AGE)...${NC}"
                 echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
                 ${OC_CMD:-oc} get jobs -l "sas.com/backup-job-type in (scheduled-backup, scheduled-backup-incremental),sas.com/sas-backup-include-postgres=true" \
                     -L "sas.com/sas-backup-id,sas.com/backup-job-type,sas.com/sas-backup-job-status,sas.com/sas-backup-persistence-status" \
-                    --sort-by=.status.startTime
+                    --sort-by=.metadata.creationTimestamp | sed -e "s/Completed/${C_GREEN}/g" -e "s/Failed/${C_RED}/g"
                 ;;
             4)
-                echo -e "${CYAN}📜 [Doc p.18] Sauvegardes excluant la base PostgreSQL (INCLUDE_POSTGRES=false)...${NC}"
+                echo -e "${CYAN}📜 [Doc p.18] Sauvegardes excluant la base PostgreSQL (INCLUDE_POSTGRES=false) (Classé par AGE)...${NC}"
                 echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
                 ${OC_CMD:-oc} get jobs -l "sas.com/backup-job-type in (scheduled-backup, scheduled-backup-incremental),sas.com/sas-backup-include-postgres=false" \
                     -L "sas.com/sas-backup-id,sas.com/backup-job-type,sas.com/sas-backup-job-status,sas.com/sas-backup-persistence-status" \
-                    --sort-by=.status.startTime
+                    --sort-by=.metadata.creationTimestamp | sed -e "s/Completed/${C_GREEN}/g" -e "s/Failed/${C_RED}/g"
                 ;;
             5)
                 echo -e "${CYAN}⏰ [Doc p.24] Vérification des configurations horaires et statuts des CronJobs...${NC}"
@@ -100,7 +152,8 @@ manage_backups_loop() {
                     echo -e "\n${CYAN}🔍 [Doc p.19] Recherche du statut du Job associé au Backup ID : $BKP_ID...${NC}"
                     echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
                     ${OC_CMD:-oc} get jobs -l "sas.com/sas-backup-id=$BKP_ID" \
-                        -L "sas.com/sas-backup-id,sas.com/backup-job-type,sas.com/sas-backup-job-status,sas.com/sas-backup-persistence-status"
+                        -L "sas.com/sas-backup-id,sas.com/backup-job-type,sas.com/sas-backup-job-status,sas.com/sas-backup-persistence-status" \
+                        | sed -e "s/Completed/${C_GREEN}/g" -e "s/Failed/${C_RED}/g"
                 else
                     echo -e "${RED}❌ Backup ID invalide ou vide.${NC}"
                 fi

@@ -190,7 +190,7 @@ show_disclaimer() {
 
 show_help() {
     echo -e "${CYAN}"
-    echo -e "  ____       _      ____   __     __ ___  __   __     _       _  _     ___   ____   ____  "
+    echo -e "  ____       _      ____   __    __ ___  __   __     _       _  _     ___   ____   ____  "
     echo -e " / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /   / \     | || |   / _ \ |  _ \ / ___| "
     echo -e " \___ \    / _ \   \___ \   \ \ / /   | |   \ V /   / _ \    | || |_ | | | || |_) |\___ \ "
     echo -e "  ___) |  / ___ \   ___) |   \ V /    | |    | |   / ___ \   |__   _|| |_| ||  __/  ___) |"
@@ -206,9 +206,48 @@ show_help() {
     echo -e ""
     echo -e "${BOLD}Options:${NC}"
     echo -e "  ${CYAN}-h, --help${NC}           Affiche cet écran d'aide."
-    echo -e "  ${CYAN}-p, --profile <nom>${NC}  Charge un profil spécifique (ex: -p PROD charge config-prod.env)."
+    echo -e "  ${CYAN}-p, --profile <nom>${NC}  Charge un profil spécifique (ex: -p prod charge config-prod.env)."
+    echo -e "  ${CYAN}-l, --list${NC}           Liste tous les profils configurés sans se connecter au cluster."
     echo -e "  ${CYAN}--cmd <script.sh>${NC}    Exécute directement un script sans passer par le menu."
+    echo -e "  ${CYAN}--dry${NC}                Lance l'outil sans exiger de connexion au cluster (Mode test)."
     echo -e ""
+}
+
+list_profiles() {
+    clear
+    echo -e "${BLUE}============================================================================================${NC}"
+    echo -e "${BOLD}   📁 Profils configurés${NC}"
+    echo -e "${BLUE}============================================================================================${NC}"
+    local count=0
+    
+    # Parcours des fichiers de configuration
+    for f in "$SCRIPT_DIR"/config*.env; do
+        [ -e "$f" ] || continue
+        ((count++))
+        local filename=$(basename "$f")
+        local prof="default"
+        
+        # Extraction du nom du profil basé sur le nom du fichier
+        if [[ "$filename" == config-*.env ]]; then
+            prof=$(echo "$filename" | sed 's/config-//' | sed 's/\.env//')
+        fi
+        
+        # Lecture silencieuse des variables clés
+        local url=$(grep "^export SERVER_URL=" "$f" | cut -d'"' -f2)
+        local ns=$(grep "^export DEFAULT_NAMESPACE=" "$f" | cut -d'"' -f2)
+        local env_type=$(grep "^export ENV_TYPE=" "$f" | cut -d'"' -f2)
+        
+        echo -e " 🔹 Profil : ${BOLD}${CYAN}${prof}${NC} (Type: ${YELLOW}${env_type:-N/A}${NC})"
+        echo -e "    URL       : ${url:-N/A}"
+        echo -e "    Namespace : ${GREEN}${ns:-N/A}${NC}"
+        echo -e "    Fichier   : $f"
+        echo -e "${BLUE}--------------------------------------------------------------------------------------------${NC}"
+    done
+
+    if [ $count -eq 0 ]; then
+        echo -e " ${YELLOW}Aucun profil configuré pour le moment. Lancez le script pour créer le premier.${NC}"
+    fi
+    exit 0
 }
 
 print_prod_banner() {
@@ -341,7 +380,7 @@ show_menu() {
         m_echo " ${BOLD}${RED}!!! ATTENTION - ENVIRONNEMENT DE PRODUCTION !!!${NC}"
     fi
 
-    m_echo "${CYAN}  ____       _      ____   __     __ ___  __   __     _       _  _     ___   ____   ____  ${NC}"
+    m_echo "${CYAN}  ____       _      ____   __    __ ___  __   __     _       _  _     ___   ____   ____  ${NC}"
     m_echo "${CYAN} / ___|     / \    / ___|  \ \   / / |_ _| \ \ / /   / \     | || |   / _ \ |  _ \ / ___| ${NC}"
     m_echo "${CYAN} \___ \    / _ \   \___ \   \ \ / /   | |   \ V /   / _ \    | || |_ | | | || |_) |\___ \ ${NC}"
     m_echo "${CYAN}  ___) |  / ___ \   ___) |   \ V /    | |    | |   / ___ \   |__   _|| |_| ||  __/  ___) |${NC}"
@@ -458,6 +497,7 @@ show_menu() {
     show_menu
 }
 
+# Analyse des arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --dry) DRY_RUN="true" ;;
@@ -473,6 +513,7 @@ while [[ "$#" -gt 0 ]]; do
             fi
             ;;
         -h|--help) show_help ; exit 0 ;;
+        -l|--list) list_profiles ; exit 0 ;;
         --cmd)
             if [ -n "$2" ]; then
                 DIRECT_CMD="$2"

@@ -21,7 +21,7 @@ while true; do
     echo -e " ${BOLD}4)${NC} 🗑️  Supprimer TOUS les Jobs K8s en échec (Failed) - ${RED}Nettoyage${NC}"
     echo ""
     echo -e " ${YELLOW}--- 🚀 SAS VIYA JOB EXECUTION (Tâches Planifiées & Code SAS) ---${NC}"
-    echo -e " ${BOLD}5)${NC} 🔎 Voir les Pods d'orchestration (scheduler, job-execution, batch...)"
+    echo -e " ${BOLD}5)${NC} 🔎 Voir les Pods d'orchestration (sas-job-execution, sas-scheduler...)"
     echo -e " ${BOLD}6)${NC} 🚨 Scanner les logs d'un composant de Job (Recherche Error, Panic, OOM...)"
     echo -e "${CYAN}--------------------------------------------------------------${NC}"
     echo -e " ${RED}r)${NC} Retour au menu"
@@ -70,13 +70,13 @@ while true; do
         5)
             echo -e "\n${YELLOW}Liste des Pods Viya liés à la gestion et l'exécution de Jobs :${NC}"
             ${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" | head -n 1
-            ${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" | grep -iE "job-execution|scheduler|orchestration|sas-batch|launcher"
+            ${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" | grep -iE "sas-job-execution|sas-scheduler|sas-workload-orchestrator|sas-batch|sas-launcher"
             echo ""
             read -p "Appuyez sur Entrée pour revenir au menu..."
             ;;
         6)
             echo -e "\n${CYAN}=== [ SCANNER DE LOGS - VIYA JOB EXECUTION ] ===${NC}"
-            echo -e "Cibles courantes : ${PURPLE}job-execution, scheduler, orchestration, batch, launcher${NC}"
+            echo -e "Cibles courantes : ${PURPLE}sas-job-execution, sas-scheduler, sas-workload-orchestrator${NC}"
             read -p "👉 Entrez le nom (ou une partie) du pod à analyser : " JOB_FILTER
             
             if [ -n "$JOB_FILTER" ]; then

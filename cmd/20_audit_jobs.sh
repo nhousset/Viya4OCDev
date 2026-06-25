@@ -74,15 +74,14 @@ while true; do
             echo ""
             read -p "Appuyez sur Entrée pour revenir au menu..."
             ;;
-        6)
-            echo -e "\n${CYAN}=== [ SCANNER GLOBAL DE LOGS - VIYA JOB EXECUTION ] ===${NC}"
+6)
+            echo -e "\n${CYAN}=== [ SCANNER DE LOGS - VIYA JOB EXECUTION ] ===${NC}"
             echo -e "Cibles : ${PURPLE}sas-job-execution, sas-scheduler, sas-workload-orchestrator, sas-batch, sas-launcher${NC}"
             echo -e "Mots-clés recherchés : ${RED}error, panic, killed, oom, unexpected, fatal${NC}"
             echo -e "${CYAN}--------------------------------------------------------------${NC}\n"
             
             echo -e "${YELLOW}🔍 Récupération et analyse en cours sur l'ensemble des pods...${NC}\n"
             
-            # Récupération de tous les pods d'orchestration
             PODS_LIST=$(${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" --no-headers 2>/dev/null | grep -iE "^sas-job-execution|^sas-scheduler|^sas-workload-orchestrator|^sas-batch|^sas-launcher" | awk '{print $1}')
 
             if [ -z "$PODS_LIST" ]; then
@@ -90,20 +89,20 @@ while true; do
             else
                 ERRORS_FOUND=0
                 
-                # Boucle sur chaque pod trouvé
                 for POD_NAME in $PODS_LIST; do
-                    # Extraction dynamique du conteneur principal
                     CONTAINER_NAME=$(${OC_CMD:-oc} get pod "$POD_NAME" -n "$DEFAULT_NAMESPACE" -o jsonpath='{.spec.containers[0].name}' 2>/dev/null)
                     C_OPT=""
                     [ -n "$CONTAINER_NAME" ] && C_OPT="-c $CONTAINER_NAME"
 
-                    # Récupération des logs (on inclut stderr avec 2>&1)
                     LOGS_OUT=$(${OC_CMD:-oc} logs "$POD_NAME" $C_OPT -n "$DEFAULT_NAMESPACE" --tail=100 2>&1)
                     
-                    # On utilise grep avec -i (insensible), -E (regex étendue) et on force la couleur
-                    FILTERED_LOGS=$(echo "$LOGS_OUT" | grep -iE --color=always "error|panic|killed|oom|unexpected|unexcepted|fatal")
+                    # Filtrage intelligent :
+                    # 1. On exclut les lignes qui contiennent un "=" avant le mot-clé (faux positifs Java/CLI)
+                    # 2. On cherche ensuite les mots-clés qui sont précédés d'un espace, du début de ligne ou d'une ponctuation
+                    FILTERED_LOGS=$(echo "$LOGS_OUT" | \
+                        grep -ivE "=(error|panic|killed|oom|unexpected|unexcepted|fatal)" | \
+                        grep -iE --color=always "(^|[[:space:]]|\[)(error|panic|killed|oom|unexpected|unexcepted|fatal)")
 
-                    # Si on trouve quelque chose, on l'affiche avec le nom du pod en entête
                     if [ -n "$FILTERED_LOGS" ]; then
                         echo -e "${RED}⚠️  Alertes trouvées dans : ${BOLD}$POD_NAME${NC}"
                         echo "$FILTERED_LOGS"
@@ -112,9 +111,8 @@ while true; do
                     fi
                 done
                 
-                # Si la boucle se termine sans qu'on ait passé la variable à 1, tout est au vert
                 if [ $ERRORS_FOUND -eq 0 ]; then
-                    echo -e "${GREEN}✅ Analyse terminée. Aucune erreur critique trouvée dans les 100 dernières lignes de TOUS ces pods.${NC}\n"
+                    echo -e "${GREEN}✅ Analyse terminée. Aucune erreur critique réelle trouvée.${NC}\n"
                 fi
             fi
             

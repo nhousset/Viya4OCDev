@@ -22,7 +22,7 @@ while true; do
     echo ""
     echo -e " ${YELLOW}--- 🚀 SAS VIYA JOB EXECUTION (Tâches Planifiées & Code SAS) ---${NC}"
     echo -e " ${BOLD}5)${NC} 🔎 Voir les Pods d'orchestration (sas-job-execution, sas-scheduler...)"
-    echo -e " ${BOLD}6)${NC} 🚨 Scanner les logs d'un composant de Job (Recherche Error, Panic, OOM...)"
+    echo -e " ${BOLD}6)${NC} 🚨 Scanner GLOBAL des logs d'orchestration (Recherche Error, OOM...)"
     echo -e "${CYAN}--------------------------------------------------------------${NC}"
     echo -e " ${RED}r)${NC} Retour au menu"
     echo ""
@@ -70,29 +70,29 @@ while true; do
         5)
             echo -e "\n${YELLOW}Liste des Pods Viya liés à la gestion et l'exécution de Jobs :${NC}"
             ${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" | head -n 1
-            # Utilisation de l'ancre ^ pour cibler strictement le début de la ligne (donc le début du nom du pod)
             ${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" | grep -iE "^sas-job-execution|^sas-scheduler|^sas-workload-orchestrator|^sas-batch|^sas-launcher"
             echo ""
             read -p "Appuyez sur Entrée pour revenir au menu..."
             ;;
         6)
-            echo -e "\n${CYAN}=== [ SCANNER DE LOGS - VIYA JOB EXECUTION ] ===${NC}"
-            echo -e "Préfixes courants : ${PURPLE}sas-job-execution, sas-scheduler, sas-workload-orchestrator${NC}"
-            read -p "👉 Entrez le préfixe du pod à analyser : " JOB_FILTER
+            echo -e "\n${CYAN}=== [ SCANNER GLOBAL DE LOGS - VIYA JOB EXECUTION ] ===${NC}"
+            echo -e "Cibles : ${PURPLE}sas-job-execution, sas-scheduler, sas-workload-orchestrator, sas-batch, sas-launcher${NC}"
+            echo -e "Mots-clés recherchés : ${RED}error, panic, killed, oom, unexpected, fatal${NC}"
+            echo -e "${CYAN}--------------------------------------------------------------${NC}\n"
             
-            if [ -n "$JOB_FILTER" ]; then
-                echo -e "${YELLOW}Recherche d'un pod commençant par '$JOB_FILTER'...${NC}"
+            echo -e "${YELLOW}🔍 Récupération et analyse en cours sur l'ensemble des pods...${NC}\n"
+            
+            # Récupération de tous les pods d'orchestration
+            PODS_LIST=$(${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" --no-headers 2>/dev/null | grep -iE "^sas-job-execution|^sas-scheduler|^sas-workload-orchestrator|^sas-batch|^sas-launcher" | awk '{print $1}')
+
+            if [ -z "$PODS_LIST" ]; then
+                echo -e "${RED}❌ Aucun pod d'orchestration trouvé dans le namespace $DEFAULT_NAMESPACE.${NC}"
+            else
+                ERRORS_FOUND=0
                 
-                # Recherche du premier pod correspondant strictement au préfixe
-                POD_NAME=$(${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" --no-headers 2>/dev/null | grep -i "^$JOB_FILTER" | awk '{print $1}' | head -n 1)
-
-                if [ -n "$POD_NAME" ]; then
-                    echo -e "${GREEN}✅ Pod ciblé : ${BOLD}$POD_NAME${NC}"
-                    echo -e "${CYAN}Extraction des 100 dernières lignes et recherche d'erreurs critiques...${NC}"
-                    echo -e "Mots-clés recherchés : ${RED}error, panic, killed, oom, unexpected, fatal${NC}"
-                    echo -e "--------------------------------------------------------------\n"
-
-                    # Extraction dynamique du conteneur principal (pour éviter l'erreur des sidecars)
+                # Boucle sur chaque pod trouvé
+                for POD_NAME in $PODS_LIST; do
+                    # Extraction dynamique du conteneur principal
                     CONTAINER_NAME=$(${OC_CMD:-oc} get pod "$POD_NAME" -n "$DEFAULT_NAMESPACE" -o jsonpath='{.spec.containers[0].name}' 2>/dev/null)
                     C_OPT=""
                     [ -n "$CONTAINER_NAME" ] && C_OPT="-c $CONTAINER_NAME"
@@ -100,25 +100,24 @@ while true; do
                     # Récupération des logs (on inclut stderr avec 2>&1)
                     LOGS_OUT=$(${OC_CMD:-oc} logs "$POD_NAME" $C_OPT -n "$DEFAULT_NAMESPACE" --tail=100 2>&1)
                     
-                    # On utilise grep avec -i (insensible à la casse), -E (regex étendue) et on force la couleur
+                    # On utilise grep avec -i (insensible), -E (regex étendue) et on force la couleur
                     FILTERED_LOGS=$(echo "$LOGS_OUT" | grep -iE --color=always "error|panic|killed|oom|unexpected|unexcepted|fatal")
 
-                    if [ -z "$FILTERED_LOGS" ]; then
-                        echo -e "${GREEN}✅ Aucune erreur critique trouvée dans les 100 dernières lignes.${NC}\n"
-                        read -p "Voulez-vous afficher les 20 dernières lignes normales ? (o/N) : " show_norm
-                        if [[ "$show_norm" =~ ^[oO]$ ]]; then
-                            echo -e "\n${YELLOW}--- Fin des logs ---${NC}"
-                            echo "$LOGS_OUT" | tail -n 20
-                        fi
-                    else
-                        echo -e "${RED}⚠️  Alertes trouvées dans les logs :${NC}"
+                    # Si on trouve quelque chose, on l'affiche avec le nom du pod en entête
+                    if [ -n "$FILTERED_LOGS" ]; then
+                        echo -e "${RED}⚠️  Alertes trouvées dans : ${BOLD}$POD_NAME${NC}"
                         echo "$FILTERED_LOGS"
+                        echo -e "${CYAN}--------------------------------------------------------------${NC}"
+                        ERRORS_FOUND=1
                     fi
-                else
-                    echo -e "${RED}❌ Aucun pod correspondant trouvé pour le préfixe '$JOB_FILTER'.${NC}"
+                done
+                
+                # Si la boucle se termine sans qu'on ait passé la variable à 1, tout est au vert
+                if [ $ERRORS_FOUND -eq 0 ]; then
+                    echo -e "${GREEN}✅ Analyse terminée. Aucune erreur critique trouvée dans les 100 dernières lignes de TOUS ces pods.${NC}\n"
                 fi
             fi
-            echo ""
+            
             read -p "Appuyez sur Entrée pour revenir au menu..."
             ;;
         r|R) break ;;

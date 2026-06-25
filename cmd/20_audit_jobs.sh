@@ -70,20 +70,21 @@ while true; do
         5)
             echo -e "\n${YELLOW}Liste des Pods Viya liés à la gestion et l'exécution de Jobs :${NC}"
             ${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" | head -n 1
-            ${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" | grep -iE "sas-job-execution|sas-scheduler|sas-workload-orchestrator|sas-batch|sas-launcher"
+            # Utilisation de l'ancre ^ pour cibler strictement le début de la ligne (donc le début du nom du pod)
+            ${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" | grep -iE "^sas-job-execution|^sas-scheduler|^sas-workload-orchestrator|^sas-batch|^sas-launcher"
             echo ""
             read -p "Appuyez sur Entrée pour revenir au menu..."
             ;;
         6)
             echo -e "\n${CYAN}=== [ SCANNER DE LOGS - VIYA JOB EXECUTION ] ===${NC}"
-            echo -e "Cibles courantes : ${PURPLE}sas-job-execution, sas-scheduler, sas-workload-orchestrator${NC}"
-            read -p "👉 Entrez le nom (ou une partie) du pod à analyser : " JOB_FILTER
+            echo -e "Préfixes courants : ${PURPLE}sas-job-execution, sas-scheduler, sas-workload-orchestrator${NC}"
+            read -p "👉 Entrez le préfixe du pod à analyser : " JOB_FILTER
             
             if [ -n "$JOB_FILTER" ]; then
-                echo -e "${YELLOW}Recherche d'un pod associé à '$JOB_FILTER'...${NC}"
+                echo -e "${YELLOW}Recherche d'un pod commençant par '$JOB_FILTER'...${NC}"
                 
-                # Recherche du premier pod correspondant
-                POD_NAME=$(${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" --no-headers 2>/dev/null | grep -i "$JOB_FILTER" | awk '{print $1}' | head -n 1)
+                # Recherche du premier pod correspondant strictement au préfixe
+                POD_NAME=$(${OC_CMD:-oc} get pods -n "$DEFAULT_NAMESPACE" --no-headers 2>/dev/null | grep -i "^$JOB_FILTER" | awk '{print $1}' | head -n 1)
 
                 if [ -n "$POD_NAME" ]; then
                     echo -e "${GREEN}✅ Pod ciblé : ${BOLD}$POD_NAME${NC}"
@@ -114,7 +115,7 @@ while true; do
                         echo "$FILTERED_LOGS"
                     fi
                 else
-                    echo -e "${RED}❌ Aucun pod correspondant trouvé pour le filtre '$JOB_FILTER'.${NC}"
+                    echo -e "${RED}❌ Aucun pod correspondant trouvé pour le préfixe '$JOB_FILTER'.${NC}"
                 fi
             fi
             echo ""

@@ -1,7 +1,8 @@
 version: '3.8'
 
 services:
-  webapp:
+  viya4oc:
+    container_name: viya4oc
     build: .
     ports:
       - "7891:80"

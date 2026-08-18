@@ -21,9 +21,19 @@ if (preg_match('/#\s*TITLE:\s*(.*)/', $content, $matches)) {
     $title = trim($matches[1]);
 }
 
-// Fonction pour simuler ou exécuter. L'exécution réelle nécessiterait `oc` et `sas-viya` installés
-// et configurés dans le conteneur Docker.
-$output = "L'exécution réelle des scripts depuis PHP nécessite la configuration des outils CLI (oc, sas-viya) dans le conteneur.\n\nContenu du script :\n\n" . htmlspecialchars($content);
+// Exécution du script
+$config_path = '/var/www/config.env';
+$source_config = file_exists($config_path) ? "source $config_path && " : "";
+
+// On exporte les variables nécessaires (identique au viya.sh)
+$cmd = "bash -c '{$source_config} export DRY_RUN=false && export PROFILE_NAME=default && bash {$path} 2>&1'";
+$output = shell_exec($cmd);
+
+// Fonction simple pour supprimer les codes de couleur ANSI pour l'affichage HTML
+$clean_output = preg_replace('/\x1b\[[0-9;]*m/', '', $output);
+if (empty($clean_output)) {
+    $clean_output = "Aucune sortie ou erreur lors de l'exécution du script.";
+}
 
 ?>
 <!DOCTYPE html>
@@ -34,22 +44,33 @@ $output = "L'exécution réelle des scripts depuis PHP nécessite la configurati
     <title><?= htmlspecialchars($title) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .terminal-output {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 75vh;
+            overflow-y: auto;
+            border-radius: 0 0 5px 5px;
+        }
+    </style>
 </head>
 <body class="bg-light">
     <div class="container py-4">
         <a href="index.php" class="btn btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Retour au menu</a>
         
-        <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center rounded-top">
                 <h5 class="mb-0"><i class="bi bi-terminal me-2"></i><?= htmlspecialchars($title) ?></h5>
                 <span class="badge bg-secondary"><?= htmlspecialchars($file) ?></span>
             </div>
-            <div class="card-body bg-dark text-light p-0">
-                <pre class="m-0 p-3" style="max-height: 70vh; overflow-y: auto;"><code><?= $output ?></code></pre>
-            </div>
+            <div class="terminal-output"><?= htmlspecialchars($clean_output) ?></div>
             <div class="card-footer bg-white">
-                <button class="btn btn-primary" onclick="alert('Fonctionnalité d\'exécution en cours de développement !')">
-                    <i class="bi bi-play-fill"></i> Exécuter le script
+                <button class="btn btn-success" onclick="location.reload()">
+                    <i class="bi bi-arrow-clockwise"></i> Relancer le script
                 </button>
             </div>
         </div>

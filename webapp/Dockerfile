@@ -16,3 +16,9 @@ WORKDIR /var/www/html
 # Le code PHP sera monté via un volume pour le développement,
 # mais on peut aussi le copier pour une image de production.
 # COPY src/ /var/www/html/
+
+# Téléchargement et installation du client OpenShift (oc)
+RUN curl -sLO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz && \
+    tar -xzf openshift-client-linux.tar.gz -C /usr/local/bin/ oc && \
+    chmod +x /usr/local/bin/oc && \
+    rm -f openshift-client-linux.tar.gz

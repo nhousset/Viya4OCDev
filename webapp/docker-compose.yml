@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  webapp:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html
+      - ../cmd:/var/www/cmd:ro
+      - ../cmd_cli:/var/www/cmd_cli:ro
+      - ../config.env:/var/www/config.env:ro

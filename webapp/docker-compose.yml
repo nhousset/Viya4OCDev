@@ -4,7 +4,7 @@ services:
   webapp:
     build: .
     ports:
-      - "8080:80"
+      - "7891:80"
     volumes:
       - ./src:/var/www/html
       - ../cmd:/var/www/cmd:ro

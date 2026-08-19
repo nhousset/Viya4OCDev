@@ -3,10 +3,32 @@ session_start();
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     header('Location: index.php'); exit;
 }
+
+$users_file = '/var/www/app/users.json';
+if (!file_exists($users_file)) {
+    $default_users = [
+        'admin' => [
+            'password' => password_hash('admin', PASSWORD_DEFAULT),
+            'role' => 'admin',
+            'profiles' => ['*']
+        ]
+    ];
+    @file_put_contents($users_file, json_encode($default_users, JSON_PRETTY_PRINT));
+}
+
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($_POST['username'] === 'admin' && $_POST['password'] === 'admin') {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+    
+    $users = @json_decode(@file_get_contents($users_file), true) ?: [];
+    
+    if (isset($users[$username]) && password_verify($password, $users[$username]['password'])) {
         $_SESSION['logged_in'] = true;
+        $_SESSION['username'] = $username;
+        $_SESSION['role'] = $users[$username]['role'];
+        $_SESSION['allowed_profiles'] = $users[$username]['profiles'] ?? [];
+        
         header('Location: index.php'); exit;
     } else {
         $error = 'Identifiants incorrects.';

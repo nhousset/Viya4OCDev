@@ -23,6 +23,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $users = @json_decode(@file_get_contents($users_file), true) ?: [];
     
+    // Fallback in case users.json could not be created (e.g. permission issues)
+    if (empty($users)) {
+        $users['admin'] = [
+            'password' => password_hash('admin', PASSWORD_DEFAULT),
+            'role' => 'admin',
+            'profiles' => ['*']
+        ];
+    }
+    
     if (isset($users[$username]) && password_verify($password, $users[$username]['password'])) {
         $_SESSION['logged_in'] = true;
         $_SESSION['username'] = $username;

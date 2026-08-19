@@ -14,19 +14,19 @@ $pods = $pods_data['items'] ?? [];
 
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liste des Pods (Tableau)</title>
+    <title>Pods List (Table)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body class="bg-light">
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4><i class="bi bi-table me-2"></i>Liste des Pods OpenShift</h4>
-            <a href="index.php" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+            <h4><i class="bi bi-table me-2"></i>OpenShift Pods List</h4>
+            <a href="index.php" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
         </div>
         
         <div class="card shadow-sm">
@@ -34,11 +34,11 @@ $pods = $pods_data['items'] ?? [];
                 <table class="table table-striped table-hover mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>Nom du Pod</th>
-                            <th>Statut</th>
-                            <th>IP du Pod</th>
-                            <th>Nœud (Node)</th>
-                            <th>Âge (Création)</th>
+                            <th>Pod Name</th>
+                            <th>Status</th>
+                            <th>Pod IP</th>
+                            <th>Node</th>
+                            <th>Age (Created)</th>
                             <th>Restarts</th>
                         </tr>
                     </thead>
@@ -46,7 +46,7 @@ $pods = $pods_data['items'] ?? [];
                         <?php if (empty($pods)): ?>
                             <tr>
                                 <td colspan="6" class="text-center py-4 text-muted">
-                                    Aucun pod trouvé ou impossible de se connecter au cluster.
+                                    No pods found or unable to connect to the cluster.
                                 </td>
                             </tr>
                         <?php else: ?>

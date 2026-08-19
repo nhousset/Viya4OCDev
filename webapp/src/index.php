@@ -1,4 +1,5 @@
 <?php
+require_once 'init.php';
 $cmd_dir = '/var/www/cmd';
 $cmd_cli_dir = '/var/www/cmd_cli';
 
@@ -46,6 +47,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
     </style>
 </head>
 <body>
+    <?php require_once 'header_html.php'; ?>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->

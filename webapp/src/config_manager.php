@@ -1,62 +1,57 @@
 <?php
-session_start();
+require_once 'init.php';
 
 $app_dir = '/var/www/app';
 $config_files = glob($app_dir . '/config*.env');
 if ($config_files === false) $config_files = [];
+$config_files = array_filter($config_files, 'is_file');
+if (!in_array($app_dir . '/config.env', $config_files) && !is_dir($app_dir . '/config.env')) {
+    array_unshift($config_files, $app_dir . '/config.env');
+}
 
-// Determine active profile
-$active_profile = $_SESSION['active_profile'] ?? 'default';
-
-// Handle form submissions
 $message = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
-        switch ($_POST['action']) {
-            case 'set_active':
-                $_SESSION['active_profile'] = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['profile']);
-                $active_profile = $_SESSION['active_profile'];
-                $message = "Active profile set to: " . htmlspecialchars($active_profile);
-                break;
-                
-            case 'save_file':
-                $filename = basename($_POST['filename']);
-                if (preg_match('/^config.*\.env$/', $filename)) {
-                    file_put_contents($app_dir . '/' . $filename, $_POST['content']);
-                    $message = "File $filename saved successfully.";
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    switch ($_POST['action']) {
+        case 'save_file':
+            $filename = basename($_POST['filename']);
+            if (preg_match('/^config.*\.env$/', $filename)) {
+                file_put_contents($app_dir . '/' . $filename, $_POST['content']);
+                $message = "File $filename saved successfully.";
+            }
+            break;
+            
+        case 'create_profile':
+            $new_profile = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['new_profile']);
+            if (!empty($new_profile)) {
+                $new_filename = 'config-' . strtolower($new_profile) . '.env';
+                if (!file_exists($app_dir . '/' . $new_filename)) {
+                    $default_content = "DEFAULT_NAMESPACE=sas-viya\nDRY_RUN=false\n";
+                    file_put_contents($app_dir . '/' . $new_filename, $default_content);
+                    $message = "Profile $new_profile created.";
+                    $config_files[] = $app_dir . '/' . $new_filename;
+                    // Reload the page to refresh the header
+                    header("Location: config_manager.php?msg=" . urlencode($message));
+                    exit;
+                } else {
+                    $message = "Profile already exists.";
                 }
-                break;
-                
-            case 'create_profile':
-                $new_profile = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['new_profile']);
-                if (!empty($new_profile)) {
-                    $new_filename = 'config-' . strtolower($new_profile) . '.env';
-                    if (!file_exists($app_dir . '/' . $new_filename)) {
-                        $default_content = "DEFAULT_NAMESPACE=sas-viya\nDRY_RUN=false\n";
-                        file_put_contents($app_dir . '/' . $new_filename, $default_content);
-                        $message = "Profile $new_profile created.";
-                        $config_files[] = $app_dir . '/' . $new_filename;
-                    } else {
-                        $message = "Profile already exists.";
-                    }
-                }
-                break;
-        }
+            }
+            break;
     }
 }
+if (isset($_GET['msg'])) { $message = $_GET['msg']; }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Configuration & Profiles</title>
+    <title>Configuration & Profiles - SAS Viya 4 OPS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
 <body class="bg-light">
+    <?php require_once 'header_html.php'; ?>
     <div class="container py-4">
-        <a href="index.php" class="btn btn-outline-secondary mb-3"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
-        
         <h2><i class="bi bi-gear me-2"></i> Configuration & Profiles</h2>
         
         <?php if ($message): ?>
@@ -64,41 +59,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <div class="row mt-4">
-            <!-- Profile Selection -->
+            <!-- Profile Creation -->
             <div class="col-md-4">
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">Active Profile</h5>
+                        <h5 class="mb-0">Create Profile</h5>
                     </div>
                     <div class="card-body">
                         <form method="POST">
-                            <input type="hidden" name="action" value="set_active">
-                            <div class="mb-3">
-                                <label class="form-label">Select Profile for Execution:</label>
-                                <select name="profile" class="form-select" onchange="this.form.submit()">
-                                    <option value="default" <?= $active_profile === 'default' ? 'selected' : '' ?>>default (config.env)</option>
-                                    <?php foreach ($config_files as $file): 
-                                        $base = basename($file);
-                                        if ($base === 'config.env') continue;
-                                        if (preg_match('/config-(.+)\.env/', $base, $m)) {
-                                            $prof = $m[1];
-                                            $sel = ($active_profile === $prof) ? 'selected' : '';
-                                            echo "<option value=\"".htmlspecialchars($prof)."\" $sel>".htmlspecialchars($prof)." ($base)</option>";
-                                        }
-                                    endforeach; ?>
-                                </select>
-                            </div>
-                        </form>
-                        
-                        <hr>
-                        
-                        <form method="POST">
                             <input type="hidden" name="action" value="create_profile">
                             <div class="mb-3">
-                                <label class="form-label">Create New Profile:</label>
+                                <label class="form-label">New Profile Name:</label>
                                 <div class="input-group">
                                     <input type="text" name="new_profile" class="form-control" placeholder="e.g. prod" required>
-                                    <button class="btn btn-outline-primary" type="submit">Create</button>
+                                    <button class="btn btn-primary" type="submit">Create</button>
                                 </div>
                             </div>
                         </form>

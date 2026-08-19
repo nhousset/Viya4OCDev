@@ -1,8 +1,5 @@
-﻿<?php
-session_start();
-$active_profile = $_SESSION['active_profile'] ?? 'default';
-$config_file = $active_profile === 'default' ? 'config.env' : "config-{$active_profile}.env";
-$config_path = "/var/www/app/$config_file";
+<?php
+require_once 'init.php';
 
 $source_config = file_exists($config_path) ? 'source '.$config_path.' && ' : '';
 $script_path = '/var/www/cmd_cli/check_connect.sh';
@@ -13,7 +10,7 @@ $has_run = false;
 $is_debug = false;
 $executed_cmd = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_script'])) {
     $is_debug = isset($_POST['debug']) && $_POST['debug'] == '1';
     
     $arg = $is_debug ? 'debug' : '';
@@ -44,46 +41,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset='UTF-8'>
     <title>Vérifier la connexion SAS Viya CLI</title>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css'>
     <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'></script>
 </head>
 <body class='bg-light'>
+    <?php require_once 'header_html.php'; ?>
     <div class='container py-4'>
-        <a href='index.php' class='btn btn-outline-secondary mb-3'>Back</a>
-        
-        <div class='alert alert-secondary py-2'>
-            <i class='bi bi-person-badge'></i> Active Profile: <strong><?= htmlspecialchars($active_profile) ?></strong> (<?= htmlspecialchars($config_file) ?>)
-            <a href='config_manager.php' class='btn btn-sm btn-outline-dark float-end p-0 px-2'>Change</a>
-        </div>
-        
         <div class='d-flex justify-content-between align-items-center mb-3'>
             <h4 class='m-0'>Vérifier la connexion SAS Viya CLI</h4>
             <form method='POST' class='m-0 d-flex align-items-center'>
+                <input type='hidden' name='run_script' value='1'>
                 <div class='form-check me-3'>
                     <input class='form-check-input' type='checkbox' name='debug' value='1' id='debugCheck' <?= $is_debug ? 'checked' : '' ?>>
-                    <label class='form-check-label' for='debugCheck'>
-                        Debug Mode
-                    </label>
+                    <label class='form-check-label' for='debugCheck'>Debug Mode</label>
                 </div>
-                <button type='submit' class='btn btn-primary'>Run Script</button>
+                <button type='submit' class='btn btn-primary'><i class='bi bi-play-fill'></i> Run Script</button>
             </form>
         </div>
 
         <?php if ($has_run): ?>
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="result-tab" data-bs-toggle="tab" data-bs-target="#result" type="button" role="tab" aria-controls="result" aria-selected="true">Result</button>
+                <button class="nav-link active" id="result-tab" data-bs-toggle="tab" data-bs-target="#result" type="button" role="tab">Result</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="log-tab" data-bs-toggle="tab" data-bs-target="#log" type="button" role="tab" aria-controls="log" aria-selected="false">Execution Log</button>
+                <button class="nav-link" id="log-tab" data-bs-toggle="tab" data-bs-target="#log" type="button" role="tab">Execution Log</button>
             </li>
         </ul>
         <div class="tab-content" id="myTabContent">
-            <div class="tab-pane fade show active" id="result" role="tabpanel" aria-labelledby="result-tab">
+            <div class="tab-pane fade show active" id="result" role="tabpanel">
                 <div class='card shadow-sm border-top-0 rounded-0 rounded-bottom'>
                     <pre class='m-0 p-3 bg-dark text-light' style='max-height: 75vh; overflow-y: auto;'><?= htmlspecialchars($clean_output ?: 'No standard output.') ?></pre>
                 </div>
             </div>
-            <div class="tab-pane fade" id="log" role="tabpanel" aria-labelledby="log-tab">
+            <div class="tab-pane fade" id="log" role="tabpanel">
                 <div class='card shadow-sm border-top-0 rounded-0 rounded-bottom p-3 bg-white'>
                     <h6>Command executed:</h6>
                     <code class='text-primary d-block mb-3'><?= htmlspecialchars($executed_cmd) ?></code>

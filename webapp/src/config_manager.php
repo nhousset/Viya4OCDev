@@ -9,13 +9,42 @@ if (!in_array($app_dir . '/config.env', $config_files) && !is_dir($app_dir . '/c
     array_unshift($config_files, $app_dir . '/config.env');
 }
 
+$fields_def = [
+    'ENV_TYPE' => ['label' => "Type d'environnement", 'placeholder' => 'ex: prod, dev, test', 'type' => 'text'],
+    'SERVER_URL' => ['label' => "URL du cluster OpenShift", 'placeholder' => 'https://api.cluster.com:6443', 'type' => 'text'],
+    'TOKEN_URL' => ['label' => "URL Token OpenShift", 'placeholder' => 'Lien de login ou \'skip\'', 'type' => 'text'],
+    'TOKEN' => ['label' => "Token OpenShift", 'placeholder' => 'sha256~...', 'type' => 'password'],
+    'DEFAULT_NAMESPACE' => ['label' => "Namespace SAS Viya", 'placeholder' => 'sas-viya', 'type' => 'text'],
+    'OC_BIN_PATH' => ['label' => "Chemin binaire oc", 'placeholder' => '/usr/local/bin/oc', 'type' => 'text'],
+    'SAS_CLI_PATH' => ['label' => "Chemin binaire sas-viya", 'placeholder' => '/usr/local/bin/sas-viya', 'type' => 'text'],
+    'SAS_VIYA_URL' => ['label' => "URL API SAS Viya", 'placeholder' => 'https://viya.monsite.com', 'type' => 'text'],
+    'AUDIT_OUT_DIR' => ['label' => "Dossier de sortie Audit", 'placeholder' => '/var/www/rapports_audit', 'type' => 'text'],
+    'SKIP_SAS_CLI' => ['label' => "Ignorer SAS CLI (true/false)", 'type' => 'checkbox'],
+    'INSECURE_SKIP_TLS_VERIFY' => ['label' => "Ignorer TLS Verif (true/false)", 'type' => 'checkbox'],
+    'DRY_RUN' => ['label' => "Mode DRY RUN (true/false)", 'type' => 'checkbox']
+];
+
 $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     switch ($_POST['action']) {
         case 'save_file':
             $filename = basename($_POST['filename']);
             if (preg_match('/^config.*\.env$/', $filename)) {
-                file_put_contents($app_dir . '/' . $filename, $_POST['content']);
+                $content = "";
+                // Merge submitted vars with possible checkboxes
+                $submitted = $_POST['vars'] ?? [];
+                foreach ($fields_def as $k => $def) {
+                    if ($def['type'] === 'checkbox') {
+                        $val = isset($submitted[$k]) ? 'true' : 'false';
+                        $content .= "export {$k}=\"{$val}\"\n";
+                    } else {
+                        if (isset($submitted[$k]) && $submitted[$k] !== '') {
+                            $val = str_replace('"', '\"', $submitted[$k]);
+                            $content .= "export {$k}=\"{$val}\"\n";
+                        }
+                    }
+                }
+                file_put_contents($app_dir . '/' . $filename, $content);
                 $message = "File $filename saved successfully.";
             }
             break;
@@ -25,11 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (!empty($new_profile)) {
                 $new_filename = 'config-' . strtolower($new_profile) . '.env';
                 if (!file_exists($app_dir . '/' . $new_filename)) {
-                    $default_content = "DEFAULT_NAMESPACE=sas-viya\nDRY_RUN=false\n";
+                    $default_content = "export DEFAULT_NAMESPACE=\"sas-viya\"\nexport DRY_RUN=\"false\"\n";
                     file_put_contents($app_dir . '/' . $new_filename, $default_content);
                     $message = "Profile $new_profile created.";
-                    $config_files[] = $app_dir . '/' . $new_filename;
-                    // Reload the page to refresh the header
                     header("Location: config_manager.php?msg=" . urlencode($message));
                     exit;
                 } else {
@@ -40,6 +67,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 if (isset($_GET['msg'])) { $message = $_GET['msg']; }
+
+function parse_env_file($path) {
+    $vars = [];
+    if (file_exists($path)) {
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (preg_match('/^(?:export\s+)?([A-Za-z0-9_]+)="?(.*?)"?$/', $line, $m)) {
+                $vars[$m[1]] = $m[2];
+            }
+        }
+    }
+    return $vars;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,13 +93,16 @@ if (isset($_GET['msg'])) { $message = $_GET['msg']; }
 <body class="bg-light">
     <?php require_once 'header_html.php'; ?>
     <div class="container py-4">
-        <h2><i class="bi bi-gear me-2"></i> Configuration & Profiles</h2>
+        <h2 class="mb-4"><i class="bi bi-gear me-2"></i> Configuration & Profiles</h2>
         
         <?php if ($message): ?>
-            <div class="alert alert-success"><?= htmlspecialchars($message) ?></div>
+            <div class="alert alert-success alert-dismissible fade show">
+                <?= htmlspecialchars($message) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         <?php endif; ?>
 
-        <div class="row mt-4">
+        <div class="row">
             <!-- Profile Creation -->
             <div class="col-md-4">
                 <div class="card shadow-sm mb-4">
@@ -80,14 +124,14 @@ if (isset($_GET['msg'])) { $message = $_GET['msg']; }
                 </div>
             </div>
 
-            <!-- File Editor -->
+            <!-- Fields Editor -->
             <div class="col-md-8">
                 <div class="card shadow-sm">
                     <div class="card-header bg-dark text-white">
-                        <h5 class="mb-0">Edit Configuration Files</h5>
+                        <h5 class="mb-0">Edit Configuration Fields</h5>
                     </div>
-                    <div class="card-body">
-                        <ul class="nav nav-tabs" id="configTabs" role="tablist">
+                    <div class="card-body p-0">
+                        <ul class="nav nav-tabs px-3 pt-3 bg-light border-bottom-0" id="configTabs" role="tablist">
                             <?php 
                             $first = true;
                             foreach ($config_files as $file): 
@@ -100,22 +144,43 @@ if (isset($_GET['msg'])) { $message = $_GET['msg']; }
                             <?php $first = false; endforeach; ?>
                         </ul>
                         
-                        <div class="tab-content border border-top-0 p-3" id="configTabsContent">
+                        <div class="tab-content p-4" id="configTabsContent">
                             <?php 
                             $first = true;
                             foreach ($config_files as $file): 
                                 $base = basename($file);
                                 $id = preg_replace('/[^a-zA-Z0-9]/', '', $base);
-                                $content = file_exists($file) ? file_get_contents($file) : '';
+                                $file_vars = parse_env_file($file);
                             ?>
                                 <div class="tab-pane fade <?= $first ? 'show active' : '' ?>" id="tab-<?= $id ?>" role="tabpanel">
                                     <form method="POST">
                                         <input type="hidden" name="action" value="save_file">
                                         <input type="hidden" name="filename" value="<?= htmlspecialchars($base) ?>">
-                                        <div class="mb-3">
-                                            <textarea name="content" class="form-control font-monospace" rows="15"><?= htmlspecialchars($content) ?></textarea>
+                                        
+                                        <div class="row g-3">
+                                            <?php foreach ($fields_def as $k => $def): 
+                                                $val = $file_vars[$k] ?? '';
+                                                $is_check = ($def['type'] === 'checkbox');
+                                                $checked = ($val === 'true' || $val === '1') ? 'checked' : '';
+                                            ?>
+                                                <div class="col-md-6">
+                                                    <?php if ($is_check): ?>
+                                                        <div class="form-check mt-4">
+                                                            <input class="form-check-input" type="checkbox" name="vars[<?= $k ?>]" value="true" id="<?= $id ?>_<?= $k ?>" <?= $checked ?>>
+                                                            <label class="form-check-label" for="<?= $id ?>_<?= $k ?>"><?= htmlspecialchars($def['label']) ?></label>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <label class="form-label small fw-bold text-muted mb-1"><?= htmlspecialchars($def['label']) ?></label>
+                                                        <input type="<?= $def['type'] ?>" name="vars[<?= $k ?>]" class="form-control form-control-sm" placeholder="<?= htmlspecialchars($def['placeholder']) ?>" value="<?= htmlspecialchars($val) ?>">
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endforeach; ?>
                                         </div>
-                                        <button type="submit" class="btn btn-success"><i class="bi bi-floppy"></i> Save <?= $base ?></button>
+                                        
+                                        <hr class="my-4">
+                                        <div class="text-end">
+                                            <button type="submit" class="btn btn-success px-4"><i class="bi bi-floppy me-2"></i> Save Configuration</button>
+                                        </div>
                                     </form>
                                 </div>
                             <?php $first = false; endforeach; ?>

@@ -1,10 +1,10 @@
 <?php
-\ = '/var/www/config.env';
-\ = file_exists(\) ? 'source '.\.' && ' : '';
-\ = '/var/www/cmd/18_readiness_check.sh';
-\ = "bash -c '{\} export DRY_RUN=false && export PROFILE_NAME=default && bash {\} 2>&1'";
-\ = shell_exec(\);
-\ = preg_replace('/\x1b\[[0-9;]*m/', '', \);
+$config_path = '/var/www/config.env';
+$source_config = file_exists($config_path) ? 'source '.$config_path.' && ' : '';
+$script_path = '/var/www/cmd/18_readiness_check.sh';
+$cmd = "bash -c '{$source_config} export DRY_RUN=false && export PROFILE_NAME=default && bash {$script_path} 2>&1'";
+$raw_output = shell_exec($cmd);
+$clean_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_output);
 ?>
 <!DOCTYPE html>
 <html lang='fr'>
@@ -18,7 +18,7 @@
         <a href='index.php' class='btn btn-outline-secondary mb-3'>Retour</a>
         <div class='card shadow-sm border-0'>
             <div class='card-header bg-dark text-white'><h5>Statut de Démarrage (Readiness Service)</h5></div>
-            <pre class='m-0 p-3 bg-dark text-light' style='max-height: 75vh; overflow-y: auto;'><?= htmlspecialchars(\) ?></pre>
+            <pre class='m-0 p-3 bg-dark text-light' style='max-height: 75vh; overflow-y: auto;'><?= htmlspecialchars($clean_output) ?></pre>
         </div>
     </div>
 </body>

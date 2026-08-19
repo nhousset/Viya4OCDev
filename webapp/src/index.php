@@ -56,7 +56,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
                 </div>
                 <div class="px-3 mb-2 text-uppercase text-muted small"><strong>Plugins OpenShift</strong></div>
                 <?php foreach ($plugins_oc as $index => $script): ?>
-                    <a href="execute.php?type=oc&file=<?= urlencode($script['file']) ?>" class="sidebar-link">
+                    <a href="<?= pathinfo($script['file'], PATHINFO_FILENAME) ?>.php" class="sidebar-link">
                         <i class="bi bi-terminal me-2"></i><?= htmlspecialchars($script['title']) ?>
                     </a>
                 <?php endforeach; ?>
@@ -68,7 +68,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
                 
                 <div class="px-3 mt-4 mb-2 text-uppercase text-muted small"><strong>Plugins SAS Viya CLI</strong></div>
                 <?php foreach ($plugins_cli as $index => $script): ?>
-                    <a href="execute.php?type=cli&file=<?= urlencode($script['file']) ?>" class="sidebar-link">
+                    <a href="<?= pathinfo($script['file'], PATHINFO_FILENAME) ?>.php" class="sidebar-link">
                         <i class="bi bi-tools me-2"></i><?= htmlspecialchars($script['title']) ?>
                     </a>
                 <?php endforeach; ?>
@@ -105,7 +105,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
                 <div class="row g-3">
                     <?php foreach ($plugins_oc as $script): ?>
                         <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 shadow-sm card-menu" onclick="window.location.href='execute.php?type=oc&file=<?= urlencode($script['file']) ?>'">
+                            <div class="card h-100 shadow-sm card-menu" onclick="window.location.href='<?= pathinfo($script['file'], PATHINFO_FILENAME) ?>.php'">
                                 <div class="card-body">
                                     <h5 class="card-title text-primary"><i class="bi bi-terminal-fill me-2"></i><?= htmlspecialchars($script['title']) ?></h5>
                                     <p class="card-text text-muted small">Script: <?= htmlspecialchars($script['file']) ?></p>
@@ -119,7 +119,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
                 <div class="row g-3">
                     <?php foreach ($plugins_cli as $script): ?>
                         <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 shadow-sm card-menu" onclick="window.location.href='execute.php?type=cli&file=<?= urlencode($script['file']) ?>'">
+                            <div class="card h-100 shadow-sm card-menu" onclick="window.location.href='<?= pathinfo($script['file'], PATHINFO_FILENAME) ?>.php'">
                                 <div class="card-body">
                                     <h5 class="card-title text-purple" style="color: #6f42c1;"><i class="bi bi-tools me-2"></i><?= htmlspecialchars($script['title']) ?></h5>
                                     <p class="card-text text-muted small">Script: <?= htmlspecialchars($script['file']) ?></p>

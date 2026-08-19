@@ -2,15 +2,36 @@
 $config_path = '/var/www/config.env';
 $source_config = file_exists($config_path) ? 'source '.$config_path.' && ' : '';
 $script_path = '/var/www/cmd/07_statut_compute.sh';
-$cmd = "bash -c '{$source_config} export DRY_RUN=false && export PROFILE_NAME=default && bash {$script_path} 2>&1'";
 
 $clean_output = '';
+$debug_output = '';
 $has_run = false;
+$is_debug = false;
+$executed_cmd = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $raw_output = shell_exec($cmd) ?? '';
+    $is_debug = isset($_POST['debug']) && $_POST['debug'] == '1';
+    
+    $arg = $is_debug ? 'debug' : '';
+    $bash_flag = $is_debug ? '-x' : '';
+    
+    $out_file = tempnam(sys_get_temp_dir(), 'out_');
+    $err_file = tempnam(sys_get_temp_dir(), 'err_');
+    
+    $cmd = "bash -c '{$source_config} export DRY_RUN=false && export PROFILE_NAME=default && bash {$bash_flag} {$script_path} {$arg} >{$out_file} 2>{$err_file}'";
+    shell_exec($cmd);
+    
+    $raw_output = file_get_contents($out_file) ?: '';
+    $raw_debug = file_get_contents($err_file) ?: '';
+    
+    @unlink($out_file);
+    @unlink($err_file);
+    
     $clean_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_output);
+    $debug_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_debug);
     $has_run = true;
+    
+    $executed_cmd = "bash {$bash_flag} {$script_path} {$arg}";
 }
 ?>
 <!DOCTYPE html>
@@ -27,7 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <div class='d-flex justify-content-between align-items-center mb-3'>
             <h4 class='m-0'>Statut du Serveur Compute (Sessions & Jobs)</h4>
-            <form method='POST' class='m-0'>
+            <form method='POST' class='m-0 d-flex align-items-center'>
+                <div class='form-check me-3'>
+                    <input class='form-check-input' type='checkbox' name='debug' value='1' id='debugCheck' <?= $is_debug ? 'checked' : '' ?>>
+                    <label class='form-check-label' for='debugCheck'>
+                        Debug Mode
+                    </label>
+                </div>
                 <button type='submit' class='btn btn-primary'>Run Script</button>
             </form>
         </div>
@@ -44,13 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="tab-content" id="myTabContent">
             <div class="tab-pane fade show active" id="result" role="tabpanel" aria-labelledby="result-tab">
                 <div class='card shadow-sm border-top-0 rounded-0 rounded-bottom'>
-                    <pre class='m-0 p-3 bg-dark text-light' style='max-height: 75vh; overflow-y: auto;'><?= htmlspecialchars($clean_output) ?></pre>
+                    <pre class='m-0 p-3 bg-dark text-light' style='max-height: 75vh; overflow-y: auto;'><?= htmlspecialchars($clean_output ?: 'No standard output.') ?></pre>
                 </div>
             </div>
             <div class="tab-pane fade" id="log" role="tabpanel" aria-labelledby="log-tab">
                 <div class='card shadow-sm border-top-0 rounded-0 rounded-bottom p-3 bg-white'>
-                    <h6>Command executed in background:</h6>
-                    <code class='text-primary'><?= htmlspecialchars($cmd) ?></code>
+                    <h6>Command executed:</h6>
+                    <code class='text-primary d-block mb-3'><?= htmlspecialchars($executed_cmd) ?></code>
+                    <h6>Logs & Traces (stderr):</h6>
+                    <pre class='m-0 p-3 bg-dark text-light' style='max-height: 60vh; overflow-y: auto;'><?= htmlspecialchars($debug_output ?: 'No debug/error logs.') ?></pre>
                 </div>
             </div>
         </div>

@@ -4,7 +4,7 @@ $source_config = file_exists($config_path) ? 'source '.$config_path.' && ' : '';
 $script_path = '/var/www/cmd/12_statut_deployments.sh';
 $cmd = "bash -c '{$source_config} export DRY_RUN=false && export PROFILE_NAME=default && bash {$script_path} 2>&1'";
 $raw_output = shell_exec($cmd);
-$clean_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_output);
+$clean_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_output ?? '');
 ?>
 <!DOCTYPE html>
 <html lang='fr'>
@@ -23,3 +23,4 @@ $clean_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_output);
     </div>
 </body>
 </html>
+

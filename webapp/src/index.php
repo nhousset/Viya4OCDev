@@ -60,6 +60,11 @@ $plugins_cli = getScripts($cmd_cli_dir);
                         <i class="bi bi-terminal me-2"></i><?= htmlspecialchars($script['title']) ?>
                     </a>
                 <?php endforeach; ?>
+
+                <div class="px-3 mt-4 mb-2 text-uppercase text-muted small"><strong>Vues Personnalisées</strong></div>
+                <a href="pods_table.php" class="sidebar-link text-info">
+                    <i class="bi bi-table me-2"></i>Liste des Pods (Tableau)
+                </a>
                 
                 <div class="px-3 mt-4 mb-2 text-uppercase text-muted small"><strong>Plugins SAS Viya CLI</strong></div>
                 <?php foreach ($plugins_cli as $index => $script): ?>
@@ -82,6 +87,18 @@ $plugins_cli = getScripts($cmd_cli_dir);
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle me-2"></i> Bienvenue sur l'interface web de la boîte à outils SAS Viya 4.
                     Sélectionnez un plugin dans le menu de gauche pour l'exécuter.
+                </div>
+
+                <h4 class="mb-3 mt-4">Vues Web Personnalisées</h4>
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 shadow-sm card-menu border-info" onclick="window.location.href='pods_table.php'">
+                            <div class="card-body">
+                                <h5 class="card-title text-info"><i class="bi bi-table me-2"></i>Liste des Pods</h5>
+                                <p class="card-text text-muted small">Exécute `oc get pods` et formate le résultat dans un tableau triable.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <h4 class="mb-3 mt-5">Plugins OpenShift</h4>

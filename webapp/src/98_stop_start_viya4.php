@@ -1,5 +1,9 @@
 ﻿<?php
-$config_path = '/var/www/config.env';
+session_start();
+$active_profile = $_SESSION['active_profile'] ?? 'default';
+$config_file = $active_profile === 'default' ? 'config.env' : "config-{$active_profile}.env";
+$config_path = "/var/www/app/$config_file";
+
 $source_config = file_exists($config_path) ? 'source '.$config_path.' && ' : '';
 $script_path = '/var/www/cmd/98_stop_start_viya4.sh';
 
@@ -18,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $out_file = tempnam(sys_get_temp_dir(), 'out_');
     $err_file = tempnam(sys_get_temp_dir(), 'err_');
     
-    $cmd = "bash -c '{$source_config} export DRY_RUN=false && export PROFILE_NAME=default && bash {$bash_flag} {$script_path} {$arg} >{$out_file} 2>{$err_file}'";
+    $cmd = "bash -c '{$source_config} export DRY_RUN=false && export PROFILE_NAME={$active_profile} && bash {$bash_flag} {$script_path} {$arg} >{$out_file} 2>{$err_file}'";
     shell_exec($cmd);
     
     $raw_output = file_get_contents($out_file) ?: '';
@@ -31,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $debug_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_debug);
     $has_run = true;
     
-    $executed_cmd = "bash {$bash_flag} {$script_path} {$arg}";
+    $executed_cmd = "PROFILE_NAME={$active_profile} bash {$bash_flag} {$script_path} {$arg}";
 }
 ?>
 <!DOCTYPE html>
@@ -45,6 +49,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class='bg-light'>
     <div class='container py-4'>
         <a href='index.php' class='btn btn-outline-secondary mb-3'>Back</a>
+        
+        <div class='alert alert-secondary py-2'>
+            <i class='bi bi-person-badge'></i> Active Profile: <strong><?= htmlspecialchars($active_profile) ?></strong> (<?= htmlspecialchars($config_file) ?>)
+            <a href='config_manager.php' class='btn btn-sm btn-outline-dark float-end p-0 px-2'>Change</a>
+        </div>
         
         <div class='d-flex justify-content-between align-items-center mb-3'>
             <h4 class='m-0'>Démarrer / Arrêter l'environnement Viya 4</h4>

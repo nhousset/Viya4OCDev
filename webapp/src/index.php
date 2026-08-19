@@ -61,6 +61,11 @@ $plugins_cli = getScripts($cmd_cli_dir);
                     </a>
                 <?php endforeach; ?>
 
+                <div class="px-3 mt-4 mb-2 text-uppercase text-muted small"><strong>Settings</strong></div>
+                <a href="config_manager.php" class="sidebar-link text-warning">
+                    <i class="bi bi-gear me-2"></i>Profiles & Config
+                </a>
+
                 <div class="px-3 mt-4 mb-2 text-uppercase text-muted small"><strong>Custom Views</strong></div>
                 <a href="pods_table.php" class="sidebar-link text-info">
                     <i class="bi bi-table me-2"></i>Pods List (Table)

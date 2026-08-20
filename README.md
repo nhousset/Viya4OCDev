@@ -1,3 +1,4 @@
+
 # 🚀 Viya4OC
 
 🛠️ **Viya4OC** est un outil en ligne de commande en **Bash** permettant d'administrer et diagnostiquer une plateforme **SAS Viya 4** déployée sur **OpenShift (Kubernetes)**.
@@ -71,21 +72,18 @@ Une interface web reproduisant le menu de la ligne de commande est disponible so
 
 Si vous ne souhaitez pas utiliser docker compose et préférez utiliser un **Volume Docker** dédié pour stocker vos configurations (évitant ainsi les éventuels problèmes de permissions de fichiers sous Linux), vous pouvez utiliser la commande docker run classique.
 
-*À exécuter depuis la racine du projet (Viya4OCDev) :*
+*À exécuter depuis la racine du projet (`Viya4OCDev`) :*
 
-``bash
+```bash
 # 1. Construction de l'image
-docker build -t viya4oc webapp/
+docker build -t viya4oc -f webapp/Dockerfile .
 
 # 2. Lancement avec un volume nommé "viya4oc_conf" pour la configuration
 docker run -d \
   --name viya4oc \
   -p 7891:80 \
-  -v C:\Users\nicol\OneDrive\Documents\14_antigravity\viya4octool/webapp/src:/var/www/html \
-  -v C:\Users\nicol\OneDrive\Documents\14_antigravity\viya4octool/cmd:/var/www/cmd:ro \
-  -v C:\Users\nicol\OneDrive\Documents\14_antigravity\viya4octool/cmd_cli:/var/www/cmd_cli:ro \
   -v viya4oc_conf:/var/www/conf \
   viya4oc
-``
+```
 
-*Note : Avec cette méthode, vos fichiers de profil config-*.env ne seront pas créés dans le dossier du projet, mais seront stockés de manière transparente et persistante dans le volume interne de Docker (iya4oc_conf).*
+*Note : Avec cette méthode, vos fichiers de profil config-*.env ne seront pas créés dans le dossier du projet, mais seront stockés de manière transparente et persistante dans le volume interne de Docker ( iya4oc_conf).*

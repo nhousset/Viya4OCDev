@@ -13,9 +13,10 @@ RUN a2enmod rewrite
 # Configuration du dossier de travail
 WORKDIR /var/www/html
 
-# Le code PHP sera monté via un volume pour le développement,
-# mais on peut aussi le copier pour une image de production.
-# COPY src/ /var/www/html/
+# Copie du code de l'application
+COPY webapp/src/ /var/www/html/
+COPY cmd/ /var/www/cmd/
+COPY cmd_cli/ /var/www/cmd_cli/
 
 # Téléchargement et installation du client OpenShift (oc)
 RUN curl -sLO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz && \

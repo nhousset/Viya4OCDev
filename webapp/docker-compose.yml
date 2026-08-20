@@ -3,11 +3,18 @@ version: '3.8'
 services:
   viya4oc:
     container_name: viya4oc
-    build: .
+    build:
+      context: ../
+      dockerfile: webapp/Dockerfile
     ports:
       - "7891:80"
     volumes:
+      # Montage des fichiers sources locaux pour le développement (évite de rebuild à chaque modification)
       - ./src:/var/www/html
       - ../cmd:/var/www/cmd:ro
       - ../cmd_cli:/var/www/cmd_cli:ro
-      - ../:/var/www/app
+      # Volume dédié à la configuration
+      - viya4oc_conf:/var/www/conf
+
+volumes:
+  viya4oc_conf:

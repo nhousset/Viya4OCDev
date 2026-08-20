@@ -18,8 +18,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CMD_DIR="$SCRIPT_DIR/cmd"
 CMD_CLI_DIR="$SCRIPT_DIR/cmd_cli"
 
+# Création du répertoire conf s'il n'existe pas
+mkdir -p "$SCRIPT_DIR/conf"
+
 PROFILE_NAME="default"
-CONFIG_FILE="$SCRIPT_DIR/config.env"
+CONFIG_FILE="$SCRIPT_DIR/conf/config.env"
 DIRECT_CMD=""
 DRY_RUN="false"
 
@@ -591,8 +594,8 @@ while [[ "$#" -gt 0 ]]; do
             if [ -n "$2" ]; then
                 PROFILE_NAME="$2"
                 PROFILE_LOWER=$(echo "$PROFILE_NAME" | tr '[:upper:]' '[:lower:]')
-                CONFIG_FILE="$SCRIPT_DIR/config-${PROFILE_LOWER}.env"
-                shift
+                CONFIG_FILE="$SCRIPT_DIR/conf/config-${PROFILE_LOWER}.env"
+                shift 2
             else
                 echo -e "${RED}❌ Erreur : l'argument --profile nécessite un nom de profil.${NC}"
                 exit 1

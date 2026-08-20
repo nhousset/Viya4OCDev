@@ -1,44 +1,44 @@
-# 🚀 Viya4OC
+# ðŸš€ Viya4OC
 
-🔧 **Viya4OC** est un outil en ligne de commande en **Bash** permettant d’administrer et diagnostiquer une plateforme **SAS Viya 4** déployée sur **OpenShift (Kubernetes)**.
+ðŸ”§ **Viya4OC** est un outil en ligne de commande en **Bash** permettant dâ€™administrer et diagnostiquer une plateforme **SAS Viya 4** dÃ©ployÃ©e sur **OpenShift (Kubernetes)**.
 
-Il s’appuie sur des scripts modulaires et un orchestrateur (`viya.sh`) pour simplifier l’utilisation des commandes `oc` et accélérer les opérations de troubleshooting.
-
----
-
-## 🎯 Objectif
-
-Faciliter le travail des administrateurs et des équipes support en proposant :
-
-- ✅ Un menu CLI interactif
-- ✅ Des audits automatisés
-- ✅ Des raccourcis vers les commandes OpenShift
-- ✅ Des diagnostics rapides (pods, CAS, DB, TLS)
+Il sâ€™appuie sur des scripts modulaires et un orchestrateur (`viya.sh`) pour simplifier lâ€™utilisation des commandes `oc` et accÃ©lÃ©rer les opÃ©rations de troubleshooting.
 
 ---
 
-## ⚙️ Fonctionnalités principales
+## ðŸŽ¯ Objectif
 
-- 🔐 Gestion de configuration persistée (`config.env`)
-- 🔌 Connexion simplifiée à OpenShift
-- 📊 Audit global de la plateforme
-- ⚙️ Suivi du moteur CAS
-- ⚠️ Détection des pods en erreur + logs
-- 🗄️ Vérification PostgreSQL (CrunchyData)
-- 🔐 Contrôle des certificats TLS
+Faciliter le travail des administrateurs et des Ã©quipes support en proposant :
+
+- âœ… Un menu CLI interactif
+- âœ… Des audits automatisÃ©s
+- âœ… Des raccourcis vers les commandes OpenShift
+- âœ… Des diagnostics rapides (pods, CAS, DB, TLS)
 
 ---
 
-## 🧱 Pré-requis
+## âš™ï¸ FonctionnalitÃ©s principales
+
+- ðŸ” Gestion de configuration persistÃ©e (`config.env`)
+- ðŸ”Œ Connexion simplifiÃ©e Ã  OpenShift
+- ðŸ“Š Audit global de la plateforme
+- âš™ï¸ Suivi du moteur CAS
+- âš ï¸ DÃ©tection des pods en erreur + logs
+- ðŸ—„ï¸ VÃ©rification PostgreSQL (CrunchyData)
+- ðŸ” ContrÃ´le des certificats TLS
+
+---
+
+## ðŸ§± PrÃ©-requis
 
 - Bash (Linux / macOS / WSL)
 - OpenShift CLI (`oc`)
-- Accès à un cluster OpenShift avec SAS Viya 4
+- AccÃ¨s Ã  un cluster OpenShift avec SAS Viya 4
 - Token OpenShift
 
 ---
 
-## 📦 Installation
+## ðŸ“¦ Installation
 
 ```bash
 git clone https://github.com/nhousset/Viya4OCDev.git
@@ -48,44 +48,44 @@ chmod +x viya.sh
 
 ---
 
-## 🌐 Interface Web (Docker)
+## ðŸŒ Interface Web (Docker)
 
 Une interface web reproduisant le menu de la ligne de commande est disponible sous forme d'application PHP avec Docker.
 
 ### Lancement de l'application Web
 
-1. Allez dans le répertoire `webapp` :
+1. Allez dans le rÃ©pertoire `webapp` :
    ```bash
    cd webapp
    ```
-2. Démarrez le conteneur avec Docker Compose :
+2. DÃ©marrez le conteneur avec Docker Compose :
    ```bash
    docker compose up -d
    ```
-3. Accédez à l'interface depuis votre navigateur :
+3. AccÃ©dez Ã  l'interface depuis votre navigateur :
    [http://localhost:7891](http://localhost:7891)
 
-*Note : Pour arrêter l'application, lancez `docker compose down` depuis le répertoire `webapp`.*
+*Note : Pour arrÃªter l'application, lancez `docker compose down` depuis le rÃ©pertoire `webapp`.*
 
 ### Alternative : Lancement sans Docker Compose (Volume Docker)
 
-Si vous ne souhaitez pas utiliser `docker compose` et préférez utiliser un **Volume Docker** dédié pour stocker vos configurations (évitant ainsi les éventuels problèmes de permissions de fichiers sous Linux), vous pouvez utiliser la commande `docker run` classique.
+Si vous ne souhaitez pas utiliser `docker compose` et prÃ©fÃ©rez utiliser un **Volume Docker** dÃ©diÃ© pour stocker vos configurations (Ã©vitant ainsi les Ã©ventuels problÃ¨mes de permissions de fichiers sous Linux), vous pouvez utiliser la commande `docker run` classique.
 
-*À exécuter depuis la racine du projet (`Viya4OCDev`) :*
+*Ã€ exÃ©cuter depuis la racine du projet (`Viya4OCDev`) :*
 
 ```bash
 # 1. Construction de l'image
 docker build -t viya4oc webapp/
 
-# 2. Lancement avec un volume nommé "viya4oc_conf" pour la configuration
+# 2. Lancement avec un volume nommÃ© "viya4oc_conf" pour la configuration
 docker run -d \
   --name viya4oc \
   -p 7891:80 \
   -v $(pwd)/webapp/src:/var/www/html \
   -v $(pwd)/cmd:/var/www/cmd:ro \
   -v $(pwd)/cmd_cli:/var/www/cmd_cli:ro \
-  -v viya4oc_conf:/var/www/app \
+  -v viya4oc_conf:/var/www/conf \
   viya4oc
 ```
 
-*Note : Avec cette méthode, vos fichiers de profil `config-*.env` ne seront pas créés dans le dossier du projet, mais seront stockés de manière transparente et persistante dans le volume interne de Docker (`viya4oc_conf`).*
+*Note : Avec cette mÃ©thode, vos fichiers de profil `config-*.env` ne seront pas crÃ©Ã©s dans le dossier du projet, mais seront stockÃ©s de maniÃ¨re transparente et persistante dans le volume interne de Docker (`viya4oc_conf`).*

@@ -15,7 +15,6 @@ $fields_def = [
     'HEADER_COLOR' => ['label' => "Couleur du Header", 'type' => 'color', 'default' => '#212529'],
     'SERVER_URL' => ['label' => "URL du cluster OpenShift", 'placeholder' => 'https://api.cluster.com:6443', 'type' => 'text'],
     'TOKEN_URL' => ['label' => "URL Token OpenShift", 'placeholder' => 'Lien de login ou \'skip\'', 'type' => 'text'],
-    'TOKEN' => ['label' => "Token OpenShift", 'placeholder' => 'sha256~...', 'type' => 'password'],
     'DEFAULT_NAMESPACE' => ['label' => "Namespace SAS Viya", 'placeholder' => 'sas-viya', 'type' => 'text'],
     'SAS_VIYA_URL' => ['label' => "URL API SAS Viya", 'placeholder' => 'https://viya.monsite.com', 'type' => 'text'],
     'AUDIT_OUT_DIR' => ['label' => "Dossier de sortie Audit", 'placeholder' => '/var/www/rapports_audit', 'type' => 'text'],

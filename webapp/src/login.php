@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h4 class="m-0"><i class="bi bi-lock-fill me-2"></i>Secure Access</h4>
         </div>
         <div class="card-body p-4">
-                <div class="text-center mb-4"><img src="logo.png" alt="OpsBuddy Logo" style="max-height: 80px; object-fit: contain;"></div>
+                <div class="text-center mb-4"><img src="img/logo.png" alt="OpsBuddy Logo" style="max-height: 80px; object-fit: contain;"></div>
             <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
             <form method="POST">
                 <div class="mb-3">

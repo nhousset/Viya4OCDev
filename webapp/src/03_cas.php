@@ -1,199 +1,226 @@
 <?php
 require_once 'init.php';
 
-$script_path = '/var/www/cmd/03_cas.sh';
+$script_dir = '/var/www/cmd';
+$cas_file = $script_dir . '/.cas_servers_' . $active_profile;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
+function run_oc($cmd) {
+    global $config_path, $active_profile;
+    $source = file_exists($config_path) ? "source $config_path && " : "";
+    return shell_exec("bash -c '$source export DRY_RUN=false && export PROFILE_NAME=$active_profile && $cmd'");
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     header('Content-Type: application/json');
-    $is_debug = isset($_POST['debug']) && $_POST['debug'] == '1';
-    $timeout_sec = (int)($_POST['timeout'] ?? 30);
-    if ($timeout_sec <= 0) $timeout_sec = 30;
-
-    $source_config = file_exists($config_path) ? 'source '.$config_path.' && ' : '';
-    $arg = $is_debug ? 'debug' : '';
-    $bash_flag = $is_debug ? '-x' : '';
+    $action = $_POST['ajax_action'];
+    $cas_name = preg_replace('/[^a-zA-Z0-9-]/', '', $_POST['cas_name'] ?? 'default');
     
-    $out_file = tempnam(sys_get_temp_dir(), 'out_');
-    $err_file = tempnam(sys_get_temp_dir(), 'err_');
+    $response = ['status' => 'success', 'output' => ''];
     
-    // On utilise la commande timeout de Linux pour éviter les processus zombies si oc freeze
-    $cmd = "timeout {$timeout_sec}s bash -c '{$source_config} export DRY_RUN=false && export PROFILE_NAME={$active_profile} && bash {$bash_flag} {$script_path} {$arg} >{$out_file} 2>{$err_file}'";
-    
-    shell_exec($cmd);
-    
-    $raw_output = file_get_contents($out_file) ?: '';
-    $raw_debug = file_get_contents($err_file) ?: '';
-    
-    @unlink($out_file);
-    @unlink($err_file);
-    
-    // Nettoyage des caractères ANSI (couleurs)
-    $clean_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_output);
-    $debug_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_debug);
-    
-    $executed_cmd = "timeout {$timeout_sec}s PROFILE_NAME={$active_profile} bash {$bash_flag} {$script_path} {$arg}";
-    
-    echo json_encode([
-        'status' => 'success',
-        'clean_output' => $clean_output,
-        'debug_output' => $debug_output,
-        'executed_cmd' => $executed_cmd
-    ]);
+    switch ($action) {
+        case 'get_dashboard':
+            $servers = file_exists($cas_file) ? file($cas_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : ['default'];
+            if (empty($servers)) $servers = ['default'];
+            $dashboard = [];
+            foreach ($servers as $s) {
+                $s = trim($s);
+                $exists = run_oc("oc get casdeployment $s -n \\$DEFAULT_NAMESPACE 2>/dev/null");
+                if (empty(trim($exists))) {
+                    $dashboard[] = ['name' => $s, 'status' => 'Non déployé / Inconnu', 'color' => 'secondary', 'deployed' => false];
+                    continue;
+                }
+                $pods = run_oc("oc get pods -n \\$DEFAULT_NAMESPACE -l casoperator.sas.com/server=$s --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l");
+                $count = (int)trim($pods);
+                if ($count > 0) {
+                    $dashboard[] = ['name' => $s, 'status' => "Démarré ($count pods actifs)", 'color' => 'success', 'deployed' => true, 'running' => true];
+                } else {
+                    $dashboard[] = ['name' => $s, 'status' => 'Arrêté (0 pod)', 'color' => 'danger', 'deployed' => true, 'running' => false];
+                }
+            }
+            $response['dashboard'] = $dashboard;
+            break;
+            
+        case 'start':
+            $response['output'] = run_oc("oc patch casdeployment $cas_name -n \\$DEFAULT_NAMESPACE --type=json -p='[{\"op\": \"add\", \"path\": \"/spec/shutdown\", \"value\": false}]' 2>&1");
+            break;
+            
+        case 'stop':
+            $response['output'] = run_oc("oc patch casdeployment $cas_name -n \\$DEFAULT_NAMESPACE --type=json -p='[{\"op\": \"add\", \"path\": \"/spec/shutdown\", \"value\": true}]' 2>&1");
+            break;
+            
+        case 'add_cas':
+            $servers = file_exists($cas_file) ? file($cas_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : ['default'];
+            if (!in_array($cas_name, $servers)) {
+                $servers[] = $cas_name;
+                file_put_contents($cas_file, implode("\n", $servers));
+                $response['output'] = "Serveur CAS '$cas_name' ajouté à la liste d'administration.";
+            } else {
+                $response['output'] = "Ce serveur existe déjà dans la liste.";
+            }
+            break;
+            
+        case 'global_status':
+            $response['output'] = run_oc("echo '--- CAS DEPLOYMENTS ---'; oc get casdeployments -n \\$DEFAULT_NAMESPACE 2>&1; echo ''; echo '--- CAS PODS ---'; oc get pods -l app.kubernetes.io/managed-by=sas-cas-operator -n \\$DEFAULT_NAMESPACE 2>&1");
+            break;
+            
+        case 'logs':
+            $pod_grep = $_POST['pod_grep'] ?? 'sas-cas-operator';
+            $pod_name = trim(run_oc("oc get pods -n \\$DEFAULT_NAMESPACE --no-headers 2>/dev/null | grep $pod_grep | awk '{print $1}' | head -n 1"));
+            if ($pod_name) {
+                $response['output'] = run_oc("echo 'Logs de $pod_name :'; oc logs $pod_name -n \\$DEFAULT_NAMESPACE --tail=100 2>&1");
+            } else {
+                $response['output'] = "Erreur: Aucun pod trouvé pour $pod_grep.";
+            }
+            break;
+    }
+    echo json_encode($response);
     exit;
 }
 ?>
 <!DOCTYPE html>
-<html lang='en'>
+<html lang="en">
 <head>
-    <meta charset='UTF-8'>
-    <title>Gestion & Statut du Moteur CAS (Global, Opérateur, Contrôleur)</title>
-    <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
-    <link rel="stylesheet" href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css'>
-    <style>
-        .loader { width: 1.5rem; height: 1.5rem; }
-    </style>
+    <meta charset="UTF-8">
+    <title>Gestion du Moteur CAS - SAS Viya 4 OPS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </head>
-<body class='bg-light'>
+<body class="bg-light">
     <?php require_once 'header_html.php'; ?>
-    <div class='container py-4'>
-        <div class='d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded shadow-sm border'>
-            <h4 class='m-0 text-primary'>Gestion & Statut du Moteur CAS (Global, Opérateur, Contrôleur)</h4>
-            <form id='runForm' class='m-0 d-flex align-items-center'>
-                <div class='form-check me-3'>
-                    <input class='form-check-input' type='checkbox' id='debugCheck'>
-                    <label class='form-check-label' for='debugCheck'>Debug Mode</label>
-                </div>
-                <div class='input-group me-3' style='width: 140px;' title="Timeout (secondes)">
-                    <span class='input-group-text'><i class="bi bi-stopwatch"></i></span>
-                    <input type='number' id='timeoutSec' class='form-control' value='30' min='1' max='300'>
-                    <span class='input-group-text'>s</span>
-                </div>
-                <button type='submit' class='btn btn-primary' id='runBtn'>
-                    <i class='bi bi-play-fill'></i> Run
-                </button>
-            </form>
-        </div>
-
-        <!-- Loader -->
-        <div id='loadingIndicator' class='alert alert-info shadow-sm' style='display: none;'>
-            <div class='d-flex align-items-center'>
-                <div class='spinner-border text-info me-3 loader' role='status'></div>
-                <div>
-                    <h6 class='mb-1'>Execution in progress...</h6>
-                    <small class='text-muted'>Please wait (<span id='timerSpan' class="fw-bold">0</span>s elapsed)</small>
-                </div>
-            </div>
-        </div>
-
-        <!-- Error -->
-        <div id='errorIndicator' class='alert alert-danger shadow-sm' style='display: none;'></div>
-
-        <!-- Results -->
-        <div id='outputSection' style='display: none;'>
-            <ul class="nav nav-tabs" id="myTab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="result-tab" data-bs-toggle="tab" data-bs-target="#result" type="button" role="tab">Result</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="log-tab" data-bs-toggle="tab" data-bs-target="#log" type="button" role="tab">Execution Log</button>
-                </li>
-            </ul>
-            <div class="tab-content shadow-sm" id="myTabContent">
-                <div class="tab-pane fade show active" id="result" role="tabpanel">
-                    <div class='card border-top-0 rounded-0 rounded-bottom'>
-                        <pre class='m-0 p-3 bg-dark text-light' style='max-height: 75vh; overflow-y: auto;' id='resultPre'></pre>
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="log" role="tabpanel">
-                    <div class='card border-top-0 rounded-0 rounded-bottom p-3 bg-white'>
-                        <h6>Command executed:</h6>
-                        <code class='text-primary d-block mb-3' id='cmdCode'></code>
-                        <h6>Logs & Traces (stderr):</h6>
-                        <pre class='m-0 p-3 bg-dark text-light' style='max-height: 60vh; overflow-y: auto;' id='logPre'></pre>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="container py-4">
         
-        <div id='startPrompt' class="alert alert-secondary border-dashed text-center mt-4">
-            <i class="bi bi-terminal fs-3 d-block mb-2 text-muted"></i>
-            Click on the <strong>Run</strong> button to start the execution.
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+            <h2 class="fw-bold mb-0 text-primary"><i class="bi bi-cpu-fill me-2"></i>Gestion & Statut du Moteur CAS</h2>
+            <div>
+                <button class="btn btn-outline-primary" onclick="loadDashboard()"><i class="bi bi-arrow-clockwise me-1"></i> Actualiser</button>
+            </div>
         </div>
+
+        <div class="row g-4 mb-4" id="dashboardCards">
+            <div class="col-12 text-center text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Chargement des serveurs CAS...</div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white fw-bold"><i class="bi bi-plus-circle text-success me-2"></i>Ajouter un serveur CAS</div>
+                    <div class="card-body">
+                        <div class="input-group mb-3">
+                            <input type="text" id="newCasName" class="form-control" placeholder="ex: shared-default">
+                            <button class="btn btn-success" type="button" onclick="addCasServer()">Ajouter</button>
+                        </div>
+                        <small class="text-muted">Ajoute un serveur à administrer pour ce profil.</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white fw-bold"><i class="bi bi-tools text-warning me-2"></i>Actions Globales</div>
+                    <div class="card-body d-flex gap-2 flex-wrap">
+                        <button class="btn btn-outline-dark" onclick="runAction('global_status')"><i class="bi bi-search me-2"></i>Statut Global</button>
+                        <button class="btn btn-outline-info" onclick="runAction('logs', 'sas-cas-operator')"><i class="bi bi-file-text me-2"></i>Logs Opérateur</button>
+                        <button class="btn btn-outline-secondary" onclick="runAction('logs', 'sas-cas-control')"><i class="bi bi-file-text me-2"></i>Logs Contrôleur</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 bg-dark text-light">
+            <div class="card-header bg-black text-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-terminal me-2"></i>Console Output</span>
+                <button class="btn btn-sm btn-outline-light" onclick="document.getElementById('consoleOut').innerHTML = ''"><i class="bi bi-trash"></i></button>
+            </div>
+            <div class="card-body p-0">
+                <pre id="consoleOut" class="m-0 p-3" style="max-height: 500px; overflow-y: auto; font-size: 0.85rem;">Prêt.</pre>
+            </div>
+        </div>
+
     </div>
     
-    <script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.getElementById('runForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('runBtn');
-            const loading = document.getElementById('loadingIndicator');
-            const outputSec = document.getElementById('outputSection');
-            const errorInd = document.getElementById('errorIndicator');
-            const startPrompt = document.getElementById('startPrompt');
-            
-            const isDebug = document.getElementById('debugCheck').checked;
-            const timeoutSec = parseInt(document.getElementById('timeoutSec').value) || 30;
-            
-            btn.disabled = true;
-            btn.innerHTML = "<span class='spinner-border spinner-border-sm' role='status' aria-hidden='true'></span> Running...";
-            
-            loading.style.display = 'block';
-            outputSec.style.display = 'none';
-            errorInd.style.display = 'none';
-            if(startPrompt) startPrompt.style.display = 'none';
-            
-            let timer = 0;
-            document.getElementById('timerSpan').innerText = timer;
-            const interval = setInterval(() => {
-                timer++;
-                document.getElementById('timerSpan').innerText = timer;
-            }, 1000);
+        const consoleOut = document.getElementById('consoleOut');
+        
+        function logToConsole(text) {
+            consoleOut.innerHTML = text + "\n\n" + consoleOut.innerHTML;
+        }
 
-            // Abort fetch shortly after the Linux timeout kills the process
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), (timeoutSec + 2) * 1000);
-
+        async function apiCall(dataObj) {
             const formData = new FormData();
-            formData.append('ajax_run', '1');
-            formData.append('timeout', timeoutSec);
-            if (isDebug) formData.append('debug', '1');
-
+            for (const key in dataObj) formData.append(key, dataObj[key]);
+            
             try {
-                const response = await fetch(window.location.href, {
-                    method: 'POST',
-                    body: formData,
-                    signal: controller.signal
-                });
-                
-                if (!response.ok) throw new Error("HTTP error " + response.status);
-                
-                const data = await response.json();
-                
-                let outText = data.clean_output || 'No standard output.';
-                if (outText.includes("Terminated") || (data.debug_output && data.debug_output.includes("Terminated"))) {
-                    // Possible linux timeout indicator
-                }
-                
-                document.getElementById('resultPre').textContent = outText;
-                document.getElementById('cmdCode').textContent = data.executed_cmd;
-                document.getElementById('logPre').textContent = data.debug_output || 'No debug/error logs.';
-                
-                outputSec.style.display = 'block';
+                const response = await fetch('03_cas.php', { method: 'POST', body: formData });
+                return await response.json();
             } catch (err) {
-                errorInd.style.display = 'block';
-                if (err.name === 'AbortError') {
-                    errorInd.innerHTML = '<strong><i class="bi bi-exclamation-triangle"></i> Timeout:</strong> Execution exceeded ' + timeoutSec + ' seconds (Browser Abort).';
-                } else {
-                    errorInd.innerHTML = '<strong><i class="bi bi-x-circle"></i> Error:</strong> ' + err.message;
-                }
-            } finally {
-                clearInterval(interval);
-                clearTimeout(timeoutId);
-                btn.disabled = false;
-                btn.innerHTML = "<i class='bi bi-play-fill'></i> Run";
-                loading.style.display = 'none';
+                logToConsole("<span class='text-danger'>Erreur réseau: " + err.message + "</span>");
+                return null;
             }
-        });
+        }
+
+        async function loadDashboard() {
+            const container = document.getElementById('dashboardCards');
+            container.innerHTML = '<div class="col-12 text-center text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Actualisation...</div>';
+            
+            const res = await apiCall({ ajax_action: 'get_dashboard' });
+            if (!res || !res.dashboard) return;
+            
+            container.innerHTML = '';
+            res.dashboard.forEach(server => {
+                let buttons = '';
+                if (server.deployed) {
+                    if (server.running) {
+                        buttons = <button class="btn btn-sm btn-danger" onclick="casAction('stop', '')"><i class="bi bi-stop-fill me-1"></i>Arrêter (Stop)</button>;
+                    } else {
+                        buttons = <button class="btn btn-sm btn-success" onclick="casAction('start', '')"><i class="bi bi-play-fill me-1"></i>Démarrer (Start)</button>;
+                    }
+                }
+                
+                container.innerHTML += 
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card shadow-sm border-start border-4 border- h-100">
+                            <div class="card-body">
+                                <h5 class="fw-bold"></h5>
+                                <p class="mb-3"><span class="badge bg-"></span></p>
+                                <div></div>
+                            </div>
+                        </div>
+                    </div>
+                ;
+            });
+        }
+
+        async function casAction(action, casName) {
+            logToConsole(<span class='text-warning'>Exécution de  sur ...</span>);
+            const res = await apiCall({ ajax_action: action, cas_name: casName });
+            if (res) {
+                logToConsole(<strong class='text-success'>[]  terminé :</strong>\n);
+                loadDashboard();
+            }
+        }
+        
+        async function runAction(action, grep = '') {
+            logToConsole(<span class='text-warning'>Exécution de ...</span>);
+            const res = await apiCall({ ajax_action: action, pod_grep: grep });
+            if (res) {
+                logToConsole(<strong class='text-success'>[] Résultat :</strong>\n);
+            }
+        }
+
+        async function addCasServer() {
+            const name = document.getElementById('newCasName').value.trim();
+            if (!name) return;
+            const res = await apiCall({ ajax_action: 'add_cas', cas_name: name });
+            if (res) {
+                logToConsole(<strong class='text-info'>Info:</strong> );
+                document.getElementById('newCasName').value = '';
+                loadDashboard();
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>

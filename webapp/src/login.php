@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="auth-body">
-    <div class="card shadow-lg border-0 glass-card" style="width: 420px; padding: 1rem;">
+    <div class="card shadow border-0" style="width: 420px; padding: 1rem;">
         
         <div class="card-body p-4">
                 <div class="text-center mb-4"><img src="img/logo.png" alt="OpsBuddy Logo" style="max-height: 180px; width: 100%; object-fit: contain;"></div>

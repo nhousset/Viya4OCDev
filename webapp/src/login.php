@@ -66,9 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Login - SAS Viya 4 OPS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>body { background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; height: 100vh; }</style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="auth-body">
     <div class="card shadow" style="width: 400px;">
         <div class="card-header bg-dark text-white text-center py-3">
             <h4 class="m-0"><i class="bi bi-lock-fill me-2"></i>Secure Access</h4>

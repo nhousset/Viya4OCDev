@@ -16,7 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
     $out_file = tempnam(sys_get_temp_dir(), 'out_');
     $err_file = tempnam(sys_get_temp_dir(), 'err_');
     
-    // On utilise la commande timeout de Linux pour éviter les processus zombies si oc freeze
     $cmd = "timeout {$timeout_sec}s bash -c '{$source_config} export DRY_RUN=false && export PROFILE_NAME={$active_profile} && bash {$bash_flag} {$script_path} {$arg} >{$out_file} 2>{$err_file}'";
     
     shell_exec($cmd);
@@ -27,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
     @unlink($out_file);
     @unlink($err_file);
     
-    // Nettoyage des caractères ANSI (couleurs)
     $clean_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_output);
     $debug_output = preg_replace('/\x1b\[[0-9;]*m/', '', $raw_debug);
     
@@ -49,9 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
     <title>Gestion des Sauvegardes & PRA (Backups Viya)</title>
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
     <link rel="stylesheet" href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css'>
-    <style>
-        .loader { width: 1.5rem; height: 1.5rem; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class='bg-light'>
     <?php require_once 'header_html.php'; ?>
@@ -74,7 +70,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
             </form>
         </div>
 
-        <!-- Loader -->
         <div id='loadingIndicator' class='alert alert-info shadow-sm' style='display: none;'>
             <div class='d-flex align-items-center'>
                 <div class='spinner-border text-info me-3 loader' role='status'></div>
@@ -85,10 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
             </div>
         </div>
 
-        <!-- Error -->
         <div id='errorIndicator' class='alert alert-danger shadow-sm' style='display: none;'></div>
 
-        <!-- Results -->
         <div id='outputSection' style='display: none;'>
             <ul class="nav nav-tabs" id="myTab" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -149,7 +142,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
                 document.getElementById('timerSpan').innerText = timer;
             }, 1000);
 
-            // Abort fetch shortly after the Linux timeout kills the process
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), (timeoutSec + 2) * 1000);
 
@@ -170,10 +162,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
                 const data = await response.json();
                 
                 let outText = data.clean_output || 'No standard output.';
-                if (outText.includes("Terminated") || (data.debug_output && data.debug_output.includes("Terminated"))) {
-                    // Possible linux timeout indicator
-                }
-                
                 document.getElementById('resultPre').textContent = outText;
                 document.getElementById('cmdCode').textContent = data.executed_cmd;
                 document.getElementById('logPre').textContent = data.debug_output || 'No debug/error logs.';

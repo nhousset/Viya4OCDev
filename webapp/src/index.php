@@ -32,8 +32,8 @@ function categorizeScripts($scripts) {
         'Ressources & Stockage' => [],
         'Monitoring & Logs' => [],
         'Composants SAS Viya' => [],
-        'Réseau & Déploiements' => [],
-        'Administration & Opérations' => [],
+        'RÃ©seau & DÃ©ploiements' => [],
+        'Administration & OpÃ©rations' => [],
         'Autres' => []
     ];
 
@@ -48,9 +48,9 @@ function categorizeScripts($scripts) {
         } elseif (preg_match('/^(03|05|07)_/', $name)) {
             $categories['Composants SAS Viya'][] = $s;
         } elseif (preg_match('/^(06|11|12|13)_/', $name)) {
-            $categories['Réseau & Déploiements'][] = $s;
+            $categories['RÃ©seau & DÃ©ploiements'][] = $s;
         } elseif (preg_match('/^(16|98)_/', $name)) {
-            $categories['Administration & Opérations'][] = $s;
+            $categories['Administration & OpÃ©rations'][] = $s;
         } else {
             $categories['Autres'][] = $s;
         }
@@ -72,15 +72,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
     <title>SAS VIYA 4 OPS - Web UI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
-        body { background-color: #f8f9fa; }
-        .sidebar { min-height: 100vh; background-color: #343a40; color: white; }
-        .sidebar-link { color: rgba(255,255,255,.8); text-decoration: none; display: block; padding: 6px 15px; font-size: 0.9rem; }
-        .sidebar-link:hover { color: white; background-color: rgba(255,255,255,.1); }
-        .card-menu { cursor: pointer; transition: transform 0.2s; border: none; }
-        .card-menu:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
-        .category-header { font-size: 0.75rem; letter-spacing: 0.5px; opacity: 0.7; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <?php require_once 'header_html.php'; ?>
@@ -142,8 +134,8 @@ $plugins_cli = getScripts($cmd_cli_dir);
                         <div class="card shadow-sm border-0 bg-info bg-opacity-10">
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
-                                    <h5 class="text-info-emphasis mb-1"><i class="bi bi-table me-2"></i>Vues Personnalisées Web</h5>
-                                    <p class="mb-0 text-muted small">Interfaces web natives optimisées pour analyser les ressources.</p>
+                                    <h5 class="text-info-emphasis mb-1"><i class="bi bi-table me-2"></i>Vues PersonnalisÃ©es Web</h5>
+                                    <p class="mb-0 text-muted small">Interfaces web natives optimisÃ©es pour analyser les ressources.</p>
                                 </div>
                                 <a href="pods_table.php" class="btn btn-info text-white shadow-sm px-4">Ouvrir Pods List</a>
                             </div>

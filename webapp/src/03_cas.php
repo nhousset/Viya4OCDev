@@ -26,15 +26,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 $s = trim($s);
                 $exists = run_oc("oc get casdeployment $s -n \\$DEFAULT_NAMESPACE 2>/dev/null");
                 if (empty(trim($exists))) {
-                    $dashboard[] = ['name' => $s, 'status' => 'Non déployé / Inconnu', 'color' => 'secondary', 'deployed' => false];
+                    $dashboard[] = ['name' => $s, 'status' => 'Non dÃ©ployÃ© / Inconnu', 'color' => 'secondary', 'deployed' => false];
                     continue;
                 }
                 $pods = run_oc("oc get pods -n \\$DEFAULT_NAMESPACE -l casoperator.sas.com/server=$s --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l");
                 $count = (int)trim($pods);
                 if ($count > 0) {
-                    $dashboard[] = ['name' => $s, 'status' => "Démarré ($count pods actifs)", 'color' => 'success', 'deployed' => true, 'running' => true];
+                    $dashboard[] = ['name' => $s, 'status' => "DÃ©marrÃ© ($count pods actifs)", 'color' => 'success', 'deployed' => true, 'running' => true];
                 } else {
-                    $dashboard[] = ['name' => $s, 'status' => 'Arrêté (0 pod)', 'color' => 'danger', 'deployed' => true, 'running' => false];
+                    $dashboard[] = ['name' => $s, 'status' => 'ArrÃªtÃ© (0 pod)', 'color' => 'danger', 'deployed' => true, 'running' => false];
                 }
             }
             $response['dashboard'] = $dashboard;
@@ -53,9 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             if (!in_array($cas_name, $servers)) {
                 $servers[] = $cas_name;
                 file_put_contents($cas_file, implode("\n", $servers));
-                $response['output'] = "Serveur CAS '$cas_name' ajouté à la liste d'administration.";
+                $response['output'] = "Serveur CAS '$cas_name' ajoutÃ© Ã  la liste d'administration.";
             } else {
-                $response['output'] = "Ce serveur existe déjà dans la liste.";
+                $response['output'] = "Ce serveur existe dÃ©jÃ  dans la liste.";
             }
             break;
             
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             if ($pod_name) {
                 $response['output'] = run_oc("echo 'Logs de $pod_name :'; oc logs $pod_name -n \\$DEFAULT_NAMESPACE --tail=100 2>&1");
             } else {
-                $response['output'] = "Erreur: Aucun pod trouvé pour $pod_grep.";
+                $response['output'] = "Erreur: Aucun pod trouvÃ© pour $pod_grep.";
             }
             break;
     }
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     <title>Gestion du Moteur CAS - SAS Viya 4 OPS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-</head>
+<link rel="stylesheet" href="style.css">`n</head>
 <body class="bg-light">
     <?php require_once 'header_html.php'; ?>
     <div class="container py-4">
@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                             <input type="text" id="newCasName" class="form-control" placeholder="ex: shared-default">
                             <button class="btn btn-success" type="button" onclick="addCasServer()">Ajouter</button>
                         </div>
-                        <small class="text-muted">Ajoute un serveur à administrer pour ce profil.</small>
+                        <small class="text-muted">Ajoute un serveur Ã  administrer pour ce profil.</small>
                     </div>
                 </div>
             </div>
@@ -119,8 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                     <div class="card-header bg-white fw-bold"><i class="bi bi-tools text-warning me-2"></i>Actions Globales</div>
                     <div class="card-body d-flex gap-2 flex-wrap">
                         <button class="btn btn-outline-dark" onclick="runAction('global_status')"><i class="bi bi-search me-2"></i>Statut Global</button>
-                        <button class="btn btn-outline-info" onclick="runAction('logs', 'sas-cas-operator')"><i class="bi bi-file-text me-2"></i>Logs Opérateur</button>
-                        <button class="btn btn-outline-secondary" onclick="runAction('logs', 'sas-cas-control')"><i class="bi bi-file-text me-2"></i>Logs Contrôleur</button>
+                        <button class="btn btn-outline-info" onclick="runAction('logs', 'sas-cas-operator')"><i class="bi bi-file-text me-2"></i>Logs OpÃ©rateur</button>
+                        <button class="btn btn-outline-secondary" onclick="runAction('logs', 'sas-cas-control')"><i class="bi bi-file-text me-2"></i>Logs ContrÃ´leur</button>
                     </div>
                 </div>
             </div>
@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 <button class="btn btn-sm btn-outline-light" onclick="document.getElementById('consoleOut').innerHTML = ''"><i class="bi bi-trash"></i></button>
             </div>
             <div class="card-body p-0">
-                <pre id="consoleOut" class="m-0 p-3" style="max-height: 500px; overflow-y: auto; font-size: 0.85rem;">Prêt.</pre>
+                <pre id="consoleOut" class="m-0 p-3" style="max-height: 500px; overflow-y: auto; font-size: 0.85rem;">PrÃªt.</pre>
             </div>
         </div>
 
@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 const response = await fetch('03_cas.php', { method: 'POST', body: formData });
                 return await response.json();
             } catch (err) {
-                logToConsole("<span class='text-danger'>Erreur réseau: " + err.message + "</span>");
+                logToConsole("<span class='text-danger'>Erreur rÃ©seau: " + err.message + "</span>");
                 return null;
             }
         }
@@ -171,9 +171,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 let buttons = '';
                 if (server.deployed) {
                     if (server.running) {
-                        buttons = <button class="btn btn-sm btn-danger" onclick="casAction('stop', '')"><i class="bi bi-stop-fill me-1"></i>Arrêter (Stop)</button>;
+                        buttons = <button class="btn btn-sm btn-danger" onclick="casAction('stop', '')"><i class="bi bi-stop-fill me-1"></i>ArrÃªter (Stop)</button>;
                     } else {
-                        buttons = <button class="btn btn-sm btn-success" onclick="casAction('start', '')"><i class="bi bi-play-fill me-1"></i>Démarrer (Start)</button>;
+                        buttons = <button class="btn btn-sm btn-success" onclick="casAction('start', '')"><i class="bi bi-play-fill me-1"></i>DÃ©marrer (Start)</button>;
                     }
                 }
                 
@@ -192,19 +192,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         }
 
         async function casAction(action, casName) {
-            logToConsole(<span class='text-warning'>Exécution de  sur ...</span>);
+            logToConsole(<span class='text-warning'>ExÃ©cution de  sur ...</span>);
             const res = await apiCall({ ajax_action: action, cas_name: casName });
             if (res) {
-                logToConsole(<strong class='text-success'>[]  terminé :</strong>\n);
+                logToConsole(<strong class='text-success'>[]  terminÃ© :</strong>\n);
                 loadDashboard();
             }
         }
         
         async function runAction(action, grep = '') {
-            logToConsole(<span class='text-warning'>Exécution de ...</span>);
+            logToConsole(<span class='text-warning'>ExÃ©cution de ...</span>);
             const res = await apiCall({ ajax_action: action, pod_grep: grep });
             if (res) {
-                logToConsole(<strong class='text-success'>[] Résultat :</strong>\n);
+                logToConsole(<strong class='text-success'>[] RÃ©sultat :</strong>\n);
             }
         }
 

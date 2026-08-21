@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($new_password) || $new_password !== $confirm_password) {
         $error = "Les mots de passe ne correspondent pas ou sont vides.";
     } elseif (strlen($new_password) < 5) {
-        $error = "Le mot de passe doit faire au moins 5 caractères.";
+        $error = "Le mot de passe doit faire au moins 5 caractÃ¨res.";
     } else {
         $users = @json_decode(@file_get_contents($users_file), true) ?: [];
         $username = $_SESSION['username'];
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
         }
         
-        // Mise à jour
+        // Mise Ã  jour
         $users[$username]['password'] = password_hash($new_password, PASSWORD_DEFAULT);
         unset($users[$username]['must_change_password']);
         
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($_SESSION['must_change_password']);
             header('Location: index.php'); exit;
         } else {
-            $error = "Erreur: Impossible de sauvegarder le fichier users.json dans /var/www/conf/. Vérifiez les permissions du volume.";
+            $error = "Erreur: Impossible de sauvegarder le fichier users.json dans /var/www/conf/. VÃ©rifiez les permissions du volume.";
         }
     }
 }
@@ -47,15 +47,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Changer le mot de passe - SAS Viya 4 OPS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>body { background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; height: 100vh; }</style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="auth-body">
     <div class="card shadow" style="width: 400px;">
         <div class="card-header bg-danger text-white text-center py-3">
             <h5 class="m-0"><i class="bi bi-shield-lock me-2"></i>Changement de mot de passe requis</h5>
         </div>
         <div class="card-body p-4">
-            <p class="text-muted small text-center mb-4">Pour des raisons de sécurité, vous devez personnaliser votre mot de passe lors de la première connexion.</p>
+            <p class="text-muted small text-center mb-4">Pour des raisons de sÃ©curitÃ©, vous devez personnaliser votre mot de passe lors de la premiÃ¨re connexion.</p>
             
             <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
             

@@ -1,7 +1,8 @@
 <?php
 require_once 'init.php';
 
-$app_dir = '/var/www/app';
+$users_file = '/var/www/conf/users.json';
+$app_dir = '/var/www/conf';
 $config_files = glob($app_dir . '/config*.env');
 if ($config_files === false) $config_files = [];
 $config_files = array_filter($config_files, 'is_file');
@@ -10,7 +11,8 @@ if (!in_array($app_dir . '/config.env', $config_files) && !is_dir($app_dir . '/c
 }
 
 $fields_def = [
-    'ENV_TYPE' => ['label' => "Type d'environnement", 'placeholder' => 'ex: prod, dev, test', 'type' => 'text'],
+    'ENV_TYPE' => ['label' => "Type d'environnement", 'type' => 'select', 'options' => ['dev' => 'Development', 'test' => 'Test', 'prod' => 'Production (Cadre Rouge)', 'other' => 'Autre']],
+    'HEADER_COLOR' => ['label' => "Couleur du Header", 'type' => 'color', 'default' => '#212529'],
     'SERVER_URL' => ['label' => "URL du cluster OpenShift", 'placeholder' => 'https://api.cluster.com:6443', 'type' => 'text'],
     'TOKEN_URL' => ['label' => "URL Token OpenShift", 'placeholder' => 'Lien de login ou \'skip\'', 'type' => 'text'],
     'TOKEN' => ['label' => "Token OpenShift", 'placeholder' => 'sha256~...', 'type' => 'password'],
@@ -31,7 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $filename = basename($_POST['filename']);
             if (preg_match('/^config.*\.env$/', $filename)) {
                 $content = "";
-                // Merge submitted vars with possible checkboxes
                 $submitted = $_POST['vars'] ?? [];
                 foreach ($fields_def as $k => $def) {
                     if ($def['type'] === 'checkbox') {
@@ -54,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (!empty($new_profile)) {
                 $new_filename = 'config-' . strtolower($new_profile) . '.env';
                 if (!file_exists($app_dir . '/' . $new_filename)) {
-                    $default_content = "export DEFAULT_NAMESPACE=\"sas-viya\"\nexport DRY_RUN=\"false\"\n";
+                    $default_content = "export ENV_TYPE=\"dev\"\nexport HEADER_COLOR=\"#212529\"\nexport DEFAULT_NAMESPACE=\"sas-viya\"\nexport DRY_RUN=\"false\"\n";
                     file_put_contents($app_dir . '/' . $new_filename, $default_content);
                     $message = "Profile $new_profile created.";
                     header("Location: config_manager.php?msg=" . urlencode($message));
@@ -103,7 +104,6 @@ function parse_env_file($path) {
         <?php endif; ?>
 
         <div class="row">
-            <!-- Profile Creation -->
             <div class="col-md-4">
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-primary text-white">
@@ -124,7 +124,6 @@ function parse_env_file($path) {
                 </div>
             </div>
 
-            <!-- Fields Editor -->
             <div class="col-md-8">
                 <div class="card shadow-sm">
                     <div class="card-header bg-dark text-white">
@@ -159,7 +158,7 @@ function parse_env_file($path) {
                                         
                                         <div class="row g-3">
                                             <?php foreach ($fields_def as $k => $def): 
-                                                $val = $file_vars[$k] ?? '';
+                                                $val = $file_vars[$k] ?? ($def['default'] ?? '');
                                                 $is_check = ($def['type'] === 'checkbox');
                                                 $checked = ($val === 'true' || $val === '1') ? 'checked' : '';
                                             ?>
@@ -169,9 +168,19 @@ function parse_env_file($path) {
                                                             <input class="form-check-input" type="checkbox" name="vars[<?= $k ?>]" value="true" id="<?= $id ?>_<?= $k ?>" <?= $checked ?>>
                                                             <label class="form-check-label" for="<?= $id ?>_<?= $k ?>"><?= htmlspecialchars($def['label']) ?></label>
                                                         </div>
+                                                    <?php elseif ($def['type'] === 'select'): ?>
+                                                        <label class="form-label small fw-bold text-muted mb-1"><?= htmlspecialchars($def['label']) ?></label>
+                                                        <select name="vars[<?= $k ?>]" class="form-select form-select-sm">
+                                                            <?php foreach ($def['options'] as $opt_val => $opt_label): ?>
+                                                                <option value="<?= htmlspecialchars($opt_val) ?>" <?= $val === $opt_val ? 'selected' : '' ?>><?= htmlspecialchars($opt_label) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    <?php elseif ($def['type'] === 'color'): ?>
+                                                        <label class="form-label small fw-bold text-muted mb-1"><?= htmlspecialchars($def['label']) ?></label>
+                                                        <input type="color" name="vars[<?= $k ?>]" class="form-control form-control-color form-control-sm w-100" value="<?= htmlspecialchars($val) ?>">
                                                     <?php else: ?>
                                                         <label class="form-label small fw-bold text-muted mb-1"><?= htmlspecialchars($def['label']) ?></label>
-                                                        <input type="<?= $def['type'] ?>" name="vars[<?= $k ?>]" class="form-control form-control-sm" placeholder="<?= htmlspecialchars($def['placeholder']) ?>" value="<?= htmlspecialchars($val) ?>">
+                                                        <input type="<?= $def['type'] ?>" name="vars[<?= $k ?>]" class="form-control form-control-sm" placeholder="<?= htmlspecialchars($def['placeholder'] ?? '') ?>" value="<?= htmlspecialchars($val) ?>">
                                                     <?php endif; ?>
                                                 </div>
                                             <?php endforeach; ?>

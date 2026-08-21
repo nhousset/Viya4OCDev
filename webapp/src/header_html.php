@@ -22,9 +22,17 @@ if (($_SESSION['role'] ?? 'user') === 'admin') {
     }
 }
 ?>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
+<style>
+    <?php if ($active_env_type === 'prod'): ?>
+    body {
+        border: 5px solid #dc3545 !important; /* Bootstrap danger red */
+        min-height: 100vh;
+    }
+    <?php endif; ?>
+</style>
+<nav class="navbar navbar-expand-lg navbar-dark mb-4 shadow-sm" style="background-color: <?= htmlspecialchars($active_header_color) ?> !important;">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-rocket-takeoff me-2"></i>SAS Viya 4 OPS</a>
+    <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-rocket-takeoff me-2"></i>SAS Viya 4 OPS <?php if ($active_env_type === 'prod'): ?><span class="badge bg-danger ms-2">PROD</span><?php endif; ?></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -38,9 +46,9 @@ if (($_SESSION['role'] ?? 'user') === 'admin') {
       </ul>
       
       <div class="d-flex align-items-center me-4">
-          <span class="text-secondary small me-3"><i class="bi bi-person-circle"></i> <?= htmlspecialchars($_SESSION['username'] ?? '') ?></span>
+          <span class="text-white small me-3"><i class="bi bi-person-circle"></i> <?= htmlspecialchars($_SESSION['username'] ?? '') ?></span>
           <form class="m-0 d-flex align-items-center" method="POST">
-            <label class="text-light me-2 small fw-bold"><i class="bi bi-person-badge"></i> Profile:</label>
+            <label class="text-white me-2 small fw-bold"><i class="bi bi-person-badge"></i> Profile:</label>
             <select name="switch_profile" class="form-select form-select-sm" onchange="this.form.submit()" style="width: auto; min-width: 120px;" <?= empty($my_profiles) ? 'disabled' : '' ?>>
               <?php if (empty($my_profiles)): ?>
                 <option>No profile</option>

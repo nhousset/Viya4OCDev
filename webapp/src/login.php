@@ -1,16 +1,20 @@
 <?php
 session_start();
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
+    if (isset($_SESSION['must_change_password']) && $_SESSION['must_change_password']) {
+        header('Location: change_password.php'); exit;
+    }
     header('Location: index.php'); exit;
 }
 
-$users_file = '/var/www/app/users.json';
+$users_file = '/var/www/conf/users.json';
 if (!file_exists($users_file)) {
     $default_users = [
         'admin' => [
             'password' => password_hash('admin', PASSWORD_DEFAULT),
             'role' => 'admin',
-            'profiles' => ['*']
+            'profiles' => ['*'],
+            'must_change_password' => true
         ]
     ];
     @file_put_contents($users_file, json_encode($default_users, JSON_PRETTY_PRINT));
@@ -28,7 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $users['admin'] = [
             'password' => password_hash('admin', PASSWORD_DEFAULT),
             'role' => 'admin',
-            'profiles' => ['*']
+            'profiles' => ['*'],
+            'must_change_password' => true
         ];
     }
     
@@ -37,6 +42,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['username'] = $username;
         $_SESSION['role'] = $users[$username]['role'];
         $_SESSION['allowed_profiles'] = $users[$username]['profiles'] ?? [];
+        
+        // Force reset if admin is still using 'admin' as password
+        if ($username === 'admin' && $password === 'admin') {
+            $users[$username]['must_change_password'] = true;
+        }
+        
+        if (!empty($users[$username]['must_change_password'])) {
+            $_SESSION['must_change_password'] = true;
+            header('Location: change_password.php'); exit;
+        }
         
         header('Location: index.php'); exit;
     } else {

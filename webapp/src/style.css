@@ -111,16 +111,63 @@ h4.border-start {
     color: #333333 !important;
 }
 
-/* Auth Pages (login.php, change_password.php) */
+/* Synthwave Background for Auth Pages */
 .auth-body {
-    background-color: #f5f6f7;
+    background-color: #0b0c10;
+    background-image: 
+        /* The Sun */
+        radial-gradient(circle at 50% 35%, #ffd700 0%, #ff8c00 12%, transparent 13%),
+        /* The Horizon Glow */
+        linear-gradient(to bottom, transparent 30%, #ff007f 40%, #000000 41%, transparent 42%),
+        /* The Grid */
+        repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(0, 255, 255, 0.2) 20px),
+        repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(0, 255, 255, 0.2) 20px),
+        /* Deep space top to bottom */
+        linear-gradient(to bottom, #090a0f 0%, #1f0b2e 40%, #050117 100%);
+    background-position: center top, center top, center 40%, center 40%, center top;
+    background-size: 100% 100%, 100% 100%, 100% 60%, 40px 60%, 100% 100%;
+    background-repeat: no-repeat;
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100vh;
+    margin: 0;
+    overflow: hidden;
 }
-.auth-body .card-header {
-    background-color: #004e76 !important;
+
+/* Glassmorphism for the login card */
+.glass-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+}
+
+/* Inputs styling in glass card */
+.glass-card .form-label {
+    font-weight: 600;
+    color: #1f0b2e;
+}
+.glass-card .form-control {
+    background: rgba(255,255,255,0.9);
+    border: 1px solid #d1d1d1;
+}
+.glass-card .form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255, 0, 127, 0.25);
+    border-color: #ff007f;
+}
+.glass-card .btn-primary {
+    background: linear-gradient(90deg, #ff007f, #7000ff);
+    border: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.glass-card .btn-primary:hover {
+    background: linear-gradient(90deg, #e60073, #5a00cc);
+    box-shadow: 0 0 15px rgba(255,0,127,0.5);
 }
 
 /* Consoles & Code Blocks */

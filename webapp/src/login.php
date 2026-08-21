@@ -69,12 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="auth-body">
-    <div class="card shadow" style="width: 400px;">
-        <div class="card-header bg-dark text-white text-center py-3">
-            <h4 class="m-0"><i class="bi bi-lock-fill me-2"></i>Secure Access</h4>
-        </div>
+    <div class="card shadow-lg border-0 glass-card" style="width: 420px; padding: 1rem;">
+        
         <div class="card-body p-4">
-                <div class="text-center mb-4"><img src="img/logo.png" alt="OpsBuddy Logo" style="max-height: 80px; object-fit: contain;"></div>
+                <div class="text-center mb-4"><img src="img/logo.png" alt="OpsBuddy Logo" style="max-height: 180px; width: 100%; object-fit: contain;"></div>
             <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
             <form method="POST">
                 <div class="mb-3">

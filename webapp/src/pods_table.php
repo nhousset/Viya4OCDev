@@ -4,9 +4,9 @@ require_once 'init.php';
 $config_path = '/var/www/config.env';
 $source_config = file_exists($config_path) ? "source $config_path && " : "";
 
-// Commande pour rÃƒÂ©cupÃƒÂ©rer les pods au format JSON
+// Commande pour rÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer les pods au format JSON
 // On passe par bash pour sourcer config.env afin d'avoir le bon contexte (TOKEN, etc.)
-// Note: Dans un environnement rÃƒÂ©el avec un namespace par dÃƒÂ©faut, on l'utilise.
+// Note: Dans un environnement rÃƒÆ’Ã‚Â©el avec un namespace par dÃƒÆ’Ã‚Â©faut, on l'utilise.
 $cmd = "bash -c '{$source_config} oc get pods -n \${DEFAULT_NAMESPACE:-sas-viya} -o json 2>/dev/null'";
 $output = shell_exec($cmd);
 
@@ -59,7 +59,7 @@ $pods = $pods_data['items'] ?? [];
                                 $node = $pod['spec']['nodeName'] ?? '-';
                                 $creationTimestamp = $pod['metadata']['creationTimestamp'] ?? null;
                                 
-                                // Calcul de l'ÃƒÂ¢ge
+                                // Calcul de l'ÃƒÆ’Ã‚Â¢ge
                                 $age = '-';
                                 if ($creationTimestamp) {
                                     $date = new DateTime($creationTimestamp);
@@ -70,7 +70,7 @@ $pods = $pods_data['items'] ?? [];
                                     else $age = $interval->i . "m";
                                 }
                                 
-                                // Calcul des redÃƒÂ©marrages
+                                // Calcul des redÃƒÆ’Ã‚Â©marrages
                                 $restarts = 0;
                                 if (isset($pod['status']['containerStatuses'])) {
                                     foreach ($pod['status']['containerStatuses'] as $cStatus) {

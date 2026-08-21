@@ -1,7 +1,7 @@
 <?php
 require_once 'init.php';
 
-$users_file = '/var/www/app/users.json';
+$users_file = '/var/www/conf/users.json';
 $users = json_decode(@file_get_contents($users_file), true) ?: [];
 
 $config_files_scan = array_filter(glob($app_dir . '/config*.env') ?: [], 'is_file');

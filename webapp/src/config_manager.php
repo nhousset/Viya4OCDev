@@ -17,8 +17,6 @@ $fields_def = [
     'TOKEN_URL' => ['label' => "URL Token OpenShift", 'placeholder' => 'Lien de login ou \'skip\'', 'type' => 'text'],
     'TOKEN' => ['label' => "Token OpenShift", 'placeholder' => 'sha256~...', 'type' => 'password'],
     'DEFAULT_NAMESPACE' => ['label' => "Namespace SAS Viya", 'placeholder' => 'sas-viya', 'type' => 'text'],
-    'OC_BIN_PATH' => ['label' => "Chemin binaire oc", 'placeholder' => '/usr/local/bin/oc', 'type' => 'text'],
-    'SAS_CLI_PATH' => ['label' => "Chemin binaire sas-viya", 'placeholder' => '/usr/local/bin/sas-viya', 'type' => 'text'],
     'SAS_VIYA_URL' => ['label' => "URL API SAS Viya", 'placeholder' => 'https://viya.monsite.com', 'type' => 'text'],
     'AUDIT_OUT_DIR' => ['label' => "Dossier de sortie Audit", 'placeholder' => '/var/www/rapports_audit', 'type' => 'text'],
     'SKIP_SAS_CLI' => ['label' => "Ignorer SAS CLI (true/false)", 'type' => 'checkbox'],

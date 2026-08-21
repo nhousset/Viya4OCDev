@@ -1,4 +1,7 @@
 <?php
+$build_date_path = '/var/www/build_date.txt';
+$build_date = file_exists($build_date_path) ? trim(file_get_contents($build_date_path)) : 'Environnement de développement';
+
 $config_files_scan = array_filter(glob($app_dir . '/config*.env') ?: [], 'is_file');
 if (!in_array($app_dir . '/config.env', $config_files_scan) && !is_dir($app_dir . '/config.env')) {
     array_unshift($config_files_scan, $app_dir . '/config.env');
@@ -32,7 +35,7 @@ if (($_SESSION['role'] ?? 'user') === 'admin') {
 </style>
 <nav class="navbar navbar-expand-lg navbar-dark mb-4 shadow-sm" style="background-color: <?= htmlspecialchars($active_header_color) ?> !important;">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-rocket-takeoff me-2"></i>SAS Viya 4 OPS <?php if ($active_env_type === 'prod'): ?><span class="badge bg-danger ms-2">PROD</span><?php endif; ?></a>
+    <a class="navbar-brand fw-bold" href="index.php"><i class="bi bi-rocket-takeoff me-2"></i>OpsBuddy <?php if ($active_env_type === 'prod'): ?><span class="badge bg-danger ms-2">PROD</span><?php endif; ?></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -43,6 +46,7 @@ if (($_SESSION['role'] ?? 'user') === 'admin') {
         <li class="nav-item"><a class="nav-link" href="user_manager.php"><i class="bi bi-people me-1"></i> Users</a></li>
         <li class="nav-item"><a class="nav-link" href="config_manager.php"><i class="bi bi-gear me-1"></i> Config</a></li>
         <?php endif; ?>
+        <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#aboutModal"><i class="bi bi-info-circle me-1"></i> À propos</a></li>
       </ul>
       
       <div class="d-flex align-items-center me-4">
@@ -64,3 +68,28 @@ if (($_SESSION['role'] ?? 'user') === 'admin') {
     </div>
   </div>
 </nav>
+
+<!-- About Modal -->
+<div class="modal fade" id="aboutModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title"><i class="bi bi-info-circle me-2"></i>À propos</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <img src="logo.png" alt="OpsBuddy Logo" style="max-height: 100px; object-fit: contain;" class="mb-3">
+        <h4 class="fw-bold">OpsBuddy</h4>
+        <p class="text-muted mb-4">Votre copilot pour Viya™ 4 sur OpenShift</p>
+        
+        <ul class="list-group list-group-flush text-start mb-3">
+          <li class="list-group-item"><i class="bi bi-person-fill me-2 text-primary"></i><strong>Auteur :</strong> Nicolas Housset</li>
+          <li class="list-group-item"><i class="bi bi-calendar-event me-2 text-primary"></i><strong>Date de release :</strong> <?= htmlspecialchars($build_date) ?></li>
+        </ul>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>

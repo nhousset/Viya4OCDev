@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login - SAS Viya 4 OPS</title>
+    <title>Login - OpsBuddy</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h4 class="m-0"><i class="bi bi-lock-fill me-2"></i>Secure Access</h4>
         </div>
         <div class="card-body p-4">
+                <div class="text-center mb-4"><img src="logo.png" alt="OpsBuddy Logo" style="max-height: 80px; object-fit: contain;"></div>
             <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
             <form method="POST">
                 <div class="mb-3">

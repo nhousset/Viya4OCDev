@@ -1,16 +1,12 @@
 <?php
 require_once 'init.php';
-// Chargement de la configuration pour avoir l'URL, Token, Namespace, etc.
-$config_path = '/var/www/config.env';
+// Commande pour rÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer les pods au format JSON
+// On passe par bash pour sourcer config.env afin d'avoir le bon contexte
 $source_config = file_exists($config_path) ? "source $config_path && " : "";
-
-// Commande pour rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer les pods au format JSON
-// On passe par bash pour sourcer config.env afin d'avoir le bon contexte (TOKEN, etc.)
-// Note: Dans un environnement rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©el avec un namespace par dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©faut, on l'utilise.
-$cmd = "bash -c '{$source_config} oc get pods -n \${DEFAULT_NAMESPACE:-sas-viya} -o json 2>/dev/null'";
+$cmd = "bash -c '{$source_config} export PROFILE_NAME={$active_profile} && oc get pods -n \${DEFAULT_NAMESPACE:-sas-viya} -o json 2>/dev/null'";
 $output = shell_exec($cmd);
 
-$pods_data = json_decode($output, true);
+$pods_data = json_decode($output ?: '{}', true);
 $pods = $pods_data['items'] ?? [];
 
 ?>
@@ -22,7 +18,8 @@ $pods = $pods_data['items'] ?? [];
     <title>Pods List (Table)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-<link rel="stylesheet" href="style.css">`n</head>
+<link rel="stylesheet" href="style.css">
+</head>
 <body class="bg-light">
     <?php require_once 'header_html.php'; ?>
     <div class="container py-4">
@@ -59,7 +56,7 @@ $pods = $pods_data['items'] ?? [];
                                 $node = $pod['spec']['nodeName'] ?? '-';
                                 $creationTimestamp = $pod['metadata']['creationTimestamp'] ?? null;
                                 
-                                // Calcul de l'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ge
+                                // Calcul de l'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ge
                                 $age = '-';
                                 if ($creationTimestamp) {
                                     $date = new DateTime($creationTimestamp);
@@ -70,7 +67,7 @@ $pods = $pods_data['items'] ?? [];
                                     else $age = $interval->i . "m";
                                 }
                                 
-                                // Calcul des redÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©marrages
+                                // Calcul des redÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©marrages
                                 $restarts = 0;
                                 if (isset($pod['status']['containerStatuses'])) {
                                     foreach ($pod['status']['containerStatuses'] as $cStatus) {

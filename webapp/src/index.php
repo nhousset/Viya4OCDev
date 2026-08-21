@@ -59,6 +59,16 @@ function categorizeScripts($scripts) {
     return array_filter($categories, function($cat) { return !empty($cat); });
 }
 
+$categoryIcons = [
+    'Audits Globaux & Checks' => 'bi-clipboard2-check-fill',
+    'Ressources & Stockage' => 'bi-hdd-stack-fill',
+    'Monitoring & Logs' => 'bi-activity',
+    'Composants SAS Viya' => 'bi-cpu-fill',
+    'Réseau & Déploiements' => 'bi-diagram-3-fill',
+    'Administration & Opérations' => 'bi-gear-fill',
+    'Autres' => 'bi-terminal-fill'
+];
+
 $plugins_oc = getScripts($cmd_dir);
 $categorized_oc = categorizeScripts($plugins_oc);
 
@@ -128,9 +138,9 @@ $plugins_cli = getScripts($cmd_cli_dir);
                     <h2 class="fw-bold mb-0"><i class="bi bi-grid-1x2-fill me-2 text-primary"></i>Dashboard</h2>
                     <div>
                         <?php if(empty($_SESSION['cluster_connected'][$active_profile])): ?>
-                            <button class="btn btn-sm btn-danger px-3 py-2 rounded-pill shadow-sm" onclick="forceConnectionCheck()"><i class="bi bi-x-circle me-1"></i> Non Connecté</button>
+                            <button class="btn btn-sm btn-danger px-3 py-2 rounded-pill shadow-sm" onclick="forceConnectionCheck()"><i class="bi bi-plug me-1"></i> Non Connecté</button>
                         <?php else: ?>
-                            <button class="btn btn-sm btn-success px-3 py-2 rounded-pill shadow-sm" onclick="forceConnectionCheck()"><i class="bi bi-check-circle me-1"></i> Connecté (Vérifier)</button>
+                            <button class="btn btn-sm btn-success px-3 py-2 rounded-pill shadow-sm" onclick="forceConnectionCheck()"><i class="bi bi-plug-fill me-1"></i> Connecté</button>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -164,6 +174,8 @@ $plugins_cli = getScripts($cmd_cli_dir);
                     <?php endif; ?>
                     <?php if (empty($scripts)) continue; ?>
                     
+                    <?php $catIcon = $categoryIcons[$categoryName] ?? 'bi-terminal-fill'; ?>
+                    
                     <h4 class="mb-3 mt-4 text-secondary border-start border-4 border-primary ps-2"><?= htmlspecialchars($categoryName) ?></h4>
                     <div class="row g-3 mb-4">
                         <?php foreach ($scripts as $script): ?>
@@ -171,7 +183,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
                                 <div class="card h-100 shadow-sm card-menu" onclick="window.location.href='<?= pathinfo($script['file'], PATHINFO_FILENAME) ?>.php'">
                                     <div class="card-body">
                                         <h6 class="card-title text-dark fw-bold mb-2">
-                                            <i class="bi bi-terminal-fill me-2 text-primary"></i><?= htmlspecialchars($script['title']) ?>
+                                            <i class="bi <?= $catIcon ?> me-2 text-primary"></i><?= htmlspecialchars($script['title']) ?>
                                         </h6>
                                         <p class="card-text text-muted small mb-0 font-monospace" style="font-size: 0.75rem;">
                                             <i class="bi bi-file-earmark-code me-1"></i><?= htmlspecialchars($script['file']) ?>
@@ -191,7 +203,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
                             <div class="card h-100 shadow-sm card-menu" onclick="window.location.href='<?= pathinfo($script['file'], PATHINFO_FILENAME) ?>.php'">
                                 <div class="card-body">
                                     <h6 class="card-title fw-bold mb-2" style="color: #6f42c1;">
-                                        <i class="bi bi-tools me-2"></i><?= htmlspecialchars($script['title']) ?>
+                                        <i class="bi bi-magic me-2"></i><?= htmlspecialchars($script['title']) ?>
                                     </h6>
                                     <p class="card-text text-muted small mb-0 font-monospace" style="font-size: 0.75rem;">
                                         <i class="bi bi-file-earmark-code me-1"></i><?= htmlspecialchars($script['file']) ?>

@@ -89,9 +89,21 @@ if (($_SESSION['role'] ?? 'user') === 'admin') {
         <h4 class="fw-bold">OpsBuddy</h4>
         <p class="text-muted mb-4">Your Viya 4 Copilot on OpenShift</p>
         
-        <ul class="list-group list-group-flush text-start mb-3">
+                <ul class="list-group list-group-flush text-start mb-3">
           <li class="list-group-item"><i class="bi bi-person-fill me-2 text-primary"></i><strong>Author :</strong> Nicolas Housset</li>
+          <li class="list-group-item"><i class="bi bi-globe me-2 text-primary"></i><strong>Website :</strong> <a href="https://nicolas-housset.fr/opsBuddy" target="_blank" class="text-decoration-none">nicolas-housset.fr/opsBuddy</a></li>
           <li class="list-group-item"><i class="bi bi-calendar-event me-2 text-primary"></i><strong>Release Date :</strong> <?= htmlspecialchars($build_date) ?></li>
+          <li class="list-group-item">
+              <i class="bi bi-shield-check me-2 text-primary"></i><strong>License :</strong> 
+              <?php if ($license_info['valid']): ?>
+                  <span class="text-success fw-bold"><?= htmlspecialchars($license_info['client_name']) ?></span> (Expires: <?= htmlspecialchars($license_info['expiration_date']) ?>)
+              <?php else: ?>
+                  <span class="text-danger fw-bold">UNLICENSED</span>
+              <?php endif; ?>
+          </li>
+          <li class="list-group-item text-center bg-light">
+              <a href="terms.php" class="text-decoration-none small text-muted"><i class="bi bi-file-earmark-text me-1"></i> View Terms of Service (EULA)</a>
+          </li>
         </ul>
       </div>
       <div class="modal-footer justify-content-center">

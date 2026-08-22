@@ -25,10 +25,39 @@ if (in_array(basename($_SERVER['PHP_SELF']), $admin_pages) && $role !== 'admin')
     exit;
 }
 
+function log_audit($action, $details = '') {
+    $username = $_SESSION['username'] ?? 'system';
+    $audit_dir = '/var/www/conf/audit';
+    if (!is_dir($audit_dir)) {
+        @mkdir($audit_dir, 0777, true);
+    }
+    
+    $file = $audit_dir . '/log_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $username) . '.json';
+    $logs = [];
+    if (file_exists($file)) {
+        $logs = @json_decode(file_get_contents($file), true) ?: [];
+    }
+    
+    // Add new entry at the beginning
+    array_unshift($logs, [
+        'time' => date('Y-m-d H:i:s'),
+        'action' => $action,
+        'details' => $details,
+        'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        'profile' => $_SESSION['active_profile'] ?? 'none'
+    ]);
+    
+    if (count($logs) > 1000) {
+        $logs = array_slice($logs, 0, 1000);
+    }
+    @file_put_contents($file, json_encode($logs, JSON_PRETTY_PRINT));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['switch_profile'])) {
     $requested_profile = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['switch_profile']);
     if ($role === 'admin' || in_array($requested_profile, $_SESSION['allowed_profiles'])) {
         $_SESSION['active_profile'] = $requested_profile;
+        log_audit('Switch Profile', "Profile changed to: $requested_profile");
     }
     header("Location: " . $_SERVER['REQUEST_URI']);
     exit;

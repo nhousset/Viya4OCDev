@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 file_put_contents($app_dir . '/' . $filename, $content);
-                $message = "File $filename saved successfully.";
+                $message = "File $filename saved successfully."; log_audit('Save Config', 'File '.$filename); 
             }
             break;
 
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $path = $app_dir . '/' . $filename;
                 if (file_exists($path)) {
                     unlink($path);
-                    $message = "Profile $filename deleted successfully.";
+                    $message = "Profile $filename deleted successfully."; log_audit('Delete Profile', 'Profile '.$filename); 
                     header("Location: config_manager.php?msg=" . urlencode($message));
                     exit;
                 }
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!file_exists($app_dir . '/' . $new_filename)) {
                     $default_content = "export ENV_TYPE=\"dev\"\nexport HEADER_COLOR=\"#212529\"\nexport DEFAULT_NAMESPACE=\"sas-viya\"\nexport DRY_RUN=\"false\"\n";
                     file_put_contents($app_dir . '/' . $new_filename, $default_content);
-                    $message = "Profile $new_profile created.";
+                    $message = "Profile $new_profile created."; log_audit('Create Profile', 'Profile '.$new_profile); 
                     header("Location: config_manager.php?msg=" . urlencode($message));
                     exit;
                 } else {

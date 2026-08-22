@@ -4,6 +4,7 @@ require_once 'init.php';
 $script_path = '/var/www/cmd/15_tail_logs_critiques.sh';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
+    log_audit('Execute Script', 'Script: 15_tail_logs_critiques.php');
     header('Content-Type: application/json');
     $is_debug = isset($_POST['debug']) && $_POST['debug'] == '1';
     $timeout_sec = (int)($_POST['timeout'] ?? 30);

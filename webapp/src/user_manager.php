@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($force_change) $users[$username]['must_change_password'] = true;
                         
                         if (@file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT)) !== false) {
-                            $message = "User $username created successfully.";
+                            $message = "User $username created successfully."; log_audit('Create User', 'User '.$username); 
                         } else {
                             $error = "Failed to save users.json.";
                         }
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     
                     if (@file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT)) !== false) {
-                        $message = "User $username updated successfully.";
+                        $message = "User $username updated successfully."; log_audit('Update User', 'User '.$username); 
                     } else {
                         $error = "Failed to save users.json.";
                     }
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($username !== 'admin' && isset($users[$username])) {
                 unset($users[$username]);
                 if (@file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT)) !== false) {
-                    $message = "User $username deleted.";
+                    $message = "User $username deleted."; log_audit('Delete User', 'User '.$username); 
                 } else {
                     $error = "Failed to save users.json.";
                 }
@@ -115,6 +115,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
 
+                <ul class="nav nav-tabs mb-4" id="userTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold" id="manage-tab" data-bs-toggle="tab" data-bs-target="#manage" type="button" role="tab"><i class="bi bi-people me-2"></i>Manage Users</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit" type="button" role="tab"><i class="bi bi-journal-text me-2"></i>Audit Logs</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="userTabsContent">
+            <!-- MANAGE USERS TAB -->
+            <div class="tab-pane fade show active" id="manage" role="tabpanel">
         <div class="row">
             <div class="col-md-4">
                 <div class="card shadow-sm mb-4">
@@ -214,9 +226,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </tbody>
                         </table>
                     </div>
+                            </div> <!-- End Manage Users Tab -->
+
+            <!-- AUDIT LOGS TAB -->
+            <div class="tab-pane fade" id="audit" role="tabpanel">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-search me-2"></i>Audit Trail Search</h5>
+                        <input type="text" id="auditSearch" class="form-control form-control-sm w-25" placeholder="Search logs (user, action, IP...)">
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            <table class="table table-hover table-striped m-0" id="auditTable">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                        <th>Profile</th>
+                                        <th>IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $audit_files = glob('/var/www/conf/audit/*.json') ?: [];
+                                    $all_logs = [];
+                                    foreach ($audit_files as $file) {
+                                        $u = str_replace(['log_', '.json'], '', basename($file));
+                                        $logs = @json_decode(file_get_contents($file), true) ?: [];
+                                        foreach ($logs as $l) {
+                                            $l['user'] = $u;
+                                            $all_logs[] = $l;
+                                        }
+                                    }
+                                    usort($all_logs, function($a, $b) {
+                                        return strtotime($b['time']) - strtotime($a['time']);
+                                    });
+                                    
+                                    if (empty($all_logs)): ?>
+                                        <tr><td colspan="6" class="text-center py-4 text-muted">No audit logs found.</td></tr>
+                                    <?php else:
+                                        foreach ($all_logs as $log): ?>
+                                        <tr>
+                                            <td class="text-nowrap small"><?= htmlspecialchars($log['time'] ?? '') ?></td>
+                                            <td class="fw-bold text-primary"><?= htmlspecialchars($log['user'] ?? '') ?></td>
+                                            <td><span class="badge bg-secondary"><?= htmlspecialchars($log['action'] ?? '') ?></span></td>
+                                            <td class="small"><?= htmlspecialchars($log['details'] ?? '') ?></td>
+                                            <td><span class="badge bg-info text-dark"><?= htmlspecialchars($log['profile'] ?? '') ?></span></td>
+                                            <td class="text-muted small"><?= htmlspecialchars($log['ip'] ?? '') ?></td>
+                                        </tr>
+                                    <?php endforeach; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </div> <!-- End Audit Logs Tab -->
+        </div> <!-- End Tab Content -->
     </div>
 
     <script>
@@ -232,7 +299,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         window.scrollTo(0, 0);
         document.getElementById('form_password').focus();
     }
+        document.getElementById('auditSearch').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#auditTable tbody tr');
+        
+        rows.forEach(row => {
+            let text = row.textContent.toLowerCase();
+            row.style.display = text.includes(filter) ? '' : 'none';
+        });
+    });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">    document.getElementById('auditSearch').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#auditTable tbody tr');
+        
+        rows.forEach(row => {
+            let text = row.textContent.toLowerCase();
+            row.style.display = text.includes(filter) ? '' : 'none';
+        });
+    });
+    </script>
 </body>
 </html>

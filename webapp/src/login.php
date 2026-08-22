@@ -4,7 +4,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     if (isset($_SESSION['must_change_password']) && $_SESSION['must_change_password']) {
         header('Location: change_password.php'); exit;
     }
-    header('Location: index.php'); exit;
+    log_audit('Login', 'Successful login'); header('Location: index.php'); exit;
 }
 
 $users_file = '/var/www/conf/users.json';
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: change_password.php'); exit;
         }
         
-        header('Location: index.php'); exit;
+        log_audit('Login', 'Successful login'); header('Location: index.php'); exit;
     } else {
         $error = 'Invalid credentials.';
     }

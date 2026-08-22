@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['license_file'])) {
         if ($data && isset($data['signature']) && isset($data['client_name']) && isset($data['expiration_date'])) {
             // Attempt to save
             if (@file_put_contents($lic_path, $file_content)) {
-                $message = "License file uploaded and saved successfully.";
+                $message = "License file uploaded and saved successfully."; log_audit('Upload License', 'Valid license uploaded'); 
                 // Refresh license info globally
                 $license_info = get_license_info();
             } else {

@@ -4,6 +4,7 @@ require_once 'init.php';
 $script_path = '/var/www/cmd/14_gestion_pods.sh';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
+    log_audit('Execute Script', 'Script: 14_gestion_pods.php');
     header('Content-Type: application/json');
     $is_debug = isset($_POST['debug']) && $_POST['debug'] == '1';
     $timeout_sec = (int)($_POST['timeout'] ?? 30);

@@ -101,4 +101,69 @@ if (file_exists($config_path)) {
         }
     }
 }
+$cmd_dir = '/var/www/cmd';
+$cmd_cli_dir = '/var/www/cmd_cli';
+
+function getScripts($dir) {
+    $scripts = [];
+    if (is_dir($dir)) {
+        $files = scandir($dir);
+        foreach ($files as $file) {
+            if (pathinfo($file, PATHINFO_EXTENSION) === 'sh') {
+                $path = $dir . '/' . $file;
+                $content = file_get_contents($path);
+                $title = $file;
+                if (preg_match('/#\s*TITLE:\s*(.*)/', $content, $matches)) {
+                    $title = trim($matches[1]);
+                }
+                $scripts[] = [
+                    'file' => $file,
+                    'path' => $path,
+                    'title' => $title
+                ];
+            }
+        }
+    }
+    return $scripts;
+}
+
+function categorizeScripts($scripts) {
+    $categories = [
+        'Global Audits & Checks' => [],
+        'Resources & Storage' => [],
+        'Monitoring & Logs' => [],
+        'SAS Viya Components' => [],
+        'Network & Deployments' => [],
+        'Administration & Operations' => [],
+        'Others' => []
+    ];
+
+    foreach ($scripts as $s) {
+        $name = $s['file'];
+        if (preg_match('/^(01|18|19|20|21)_/', $name)) {
+            $categories['Global Audits & Checks'][] = $s;
+        } elseif (preg_match('/^(02|08|09)_/', $name)) {
+            $categories['Resources & Storage'][] = $s;
+        } elseif (preg_match('/^(04|10|14|15)_/', $name)) {
+            $categories['Monitoring & Logs'][] = $s;
+        } elseif (preg_match('/^(03|05|07)_/', $name)) {
+            $categories['SAS Viya Components'][] = $s;
+        } elseif (preg_match('/^(06|11|12|13)_/', $name)) {
+            $categories['Network & Deployments'][] = $s;
+        } elseif (preg_match('/^(16|17)_/', $name)) {
+            $categories['Administration & Operations'][] = $s;
+        } else {
+            $categories['Others'][] = $s;
+        }
+    }
+
+    foreach ($categories as $k => $v) {
+        if (empty($v)) unset($categories[$k]);
+    }
+    return $categories;
+}
+
+$all_oc_scripts = getScripts($cmd_dir);
+$categorized_oc = categorizeScripts($all_oc_scripts);
+$plugins_cli = getScripts($cmd_cli_dir);
 ?>

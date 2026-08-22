@@ -87,53 +87,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
 <body>
     <?php require_once 'header_html.php'; ?>
     <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar p-0 pt-3 shadow">
-                <div class="text-center mb-4">
-                    <h5 class="mb-0 fw-bold">OpsBuddy</h5>
-                    <small class="text-muted">Toolkit Menu</small>
-                </div>
-                
-                <?php foreach ($categorized_oc as $categoryName => $scripts): ?>
-                    <div class="px-3 mt-4 mb-2 text-uppercase fw-bold text-info category-header"><?= htmlspecialchars($categoryName) ?></div>
-                    <?php foreach ($scripts as $script): ?>
-                        <a href="<?= pathinfo($script['file'], PATHINFO_FILENAME) ?>.php" class="sidebar-link">
-                            <i class="bi bi-chevron-right me-1 small"></i><?= htmlspecialchars($script['title']) ?>
-                        </a>
-                    <?php endforeach; ?>
-                <?php endforeach; ?>
-                
-                <div class="px-3 mt-4 mb-2 text-uppercase fw-bold text-warning category-header">SAS Viya CLI Plugins</div>
-                <?php foreach ($plugins_cli as $index => $script): ?>
-                    <a href="<?= pathinfo($script['file'], PATHINFO_FILENAME) ?>.php" class="sidebar-link">
-                        <i class="bi bi-tools me-2"></i><?= htmlspecialchars($script['title']) ?>
-                    </a>
-                <?php endforeach; ?>
-
-                <div class="px-3 mt-4 mb-2 text-uppercase fw-bold text-success category-header">Custom Views</div>
-                <a href="pods_table.php" class="sidebar-link">
-                    <i class="bi bi-table me-2"></i>Pods List (Table)
-                </a>
-                <a href="03_cas.php" class="sidebar-link">
-                    <i class="bi bi-cpu-fill me-2"></i>Manage CAS Engine
-                </a>
-                
-                <?php if (($_SESSION['role'] ?? 'user') === 'admin'): ?>
-                <div class="px-3 mt-4 mb-2 text-uppercase fw-bold text-danger category-header">Administration</div>
-                <a href="config_manager.php" class="sidebar-link">
-                    <i class="bi bi-gear me-2"></i>Profiles & Config
-                </a>
-                <a href="user_manager.php" class="sidebar-link">
-                    <i class="bi bi-people me-2"></i>Users
-                </a>
-                <?php endif; ?>
-                
-                <div class="mb-5"></div>
-            </div>
-
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 p-4">
+        <div class="row"><div class="col-12 p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
                     <h2 class="fw-bold mb-0"><i class="bi bi-grid-1x2-fill me-2 text-primary"></i>Dashboard</h2>
                     <div>

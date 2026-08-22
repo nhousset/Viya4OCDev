@@ -28,31 +28,31 @@ function getScripts($dir) {
 
 function categorizeScripts($scripts) {
     $categories = [
-        'Audits Globaux & Checks' => [],
-        'Ressources & Stockage' => [],
+        'Global Audits & Checks' => [],
+        'Resources & Storage' => [],
         'Monitoring & Logs' => [],
-        'Composants SAS Viya' => [],
-        'Réseau & Déploiements' => [],
-        'Administration & Opérations' => [],
-        'Autres' => []
+        'SAS Viya Components' => [],
+        'RÃƒÆ’Ã‚Â©seau & DÃƒÆ’Ã‚Â©ploiements' => [],
+        'Administration & OpÃƒÆ’Ã‚Â©rations' => [],
+        'Others' => []
     ];
 
     foreach ($scripts as $s) {
         $name = $s['file'];
         if (preg_match('/^(01|18|19|20|21)_/', $name)) {
-            $categories['Audits Globaux & Checks'][] = $s;
+            $categories['Global Audits & Checks'][] = $s;
         } elseif (preg_match('/^(02|08|09)_/', $name)) {
-            $categories['Ressources & Stockage'][] = $s;
+            $categories['Resources & Storage'][] = $s;
         } elseif (preg_match('/^(04|10|14|15)_/', $name)) {
             $categories['Monitoring & Logs'][] = $s;
         } elseif (preg_match('/^(03|05|07)_/', $name)) {
-            $categories['Composants SAS Viya'][] = $s;
+            $categories['SAS Viya Components'][] = $s;
         } elseif (preg_match('/^(06|11|12|13)_/', $name)) {
-            $categories['Réseau & Déploiements'][] = $s;
+            $categories['RÃƒÆ’Ã‚Â©seau & DÃƒÆ’Ã‚Â©ploiements'][] = $s;
         } elseif (preg_match('/^(16|98)_/', $name)) {
-            $categories['Administration & Opérations'][] = $s;
+            $categories['Administration & OpÃƒÆ’Ã‚Â©rations'][] = $s;
         } else {
-            $categories['Autres'][] = $s;
+            $categories['Others'][] = $s;
         }
     }
 
@@ -60,13 +60,13 @@ function categorizeScripts($scripts) {
 }
 
 $categoryIcons = [
-    'Audits Globaux & Checks' => 'bi-clipboard2-check-fill',
-    'Ressources & Stockage' => 'bi-hdd-stack-fill',
+    'Global Audits & Checks' => 'bi-clipboard2-check-fill',
+    'Resources & Storage' => 'bi-hdd-stack-fill',
     'Monitoring & Logs' => 'bi-activity',
-    'Composants SAS Viya' => 'bi-cpu-fill',
-    'Réseau & Déploiements' => 'bi-diagram-3-fill',
-    'Administration & Opérations' => 'bi-gear-fill',
-    'Autres' => 'bi-terminal-fill'
+    'SAS Viya Components' => 'bi-cpu-fill',
+    'RÃƒÆ’Ã‚Â©seau & DÃƒÆ’Ã‚Â©ploiements' => 'bi-diagram-3-fill',
+    'Administration & OpÃƒÆ’Ã‚Â©rations' => 'bi-gear-fill',
+    'Others' => 'bi-terminal-fill'
 ];
 
 $plugins_oc = getScripts($cmd_dir);
@@ -116,7 +116,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
                     <i class="bi bi-table me-2"></i>Pods List (Table)
                 </a>
                 <a href="03_cas.php" class="sidebar-link">
-                    <i class="bi bi-cpu-fill me-2"></i>Gestion Moteur CAS
+                    <i class="bi bi-cpu-fill me-2"></i>Manage CAS Engine
                 </a>
                 
                 <?php if (($_SESSION['role'] ?? 'user') === 'admin'): ?>
@@ -138,9 +138,9 @@ $plugins_cli = getScripts($cmd_cli_dir);
                     <h2 class="fw-bold mb-0"><i class="bi bi-grid-1x2-fill me-2 text-primary"></i>Dashboard</h2>
                     <div>
                         <?php if(empty($_SESSION['cluster_connected'][$active_profile])): ?>
-                            <button class="btn btn-sm btn-danger px-3 py-2 rounded-pill shadow-sm" onclick="forceConnectionCheck()"><i class="bi bi-plug me-1"></i> Non Connecté</button>
+                            <button class="btn btn-sm btn-danger px-3 py-2 rounded-pill shadow-sm" onclick="forceConnectionCheck()"><i class="bi bi-plug me-1"></i> Non ConnectÃƒÆ’Ã‚Â©</button>
                         <?php else: ?>
-                            <button class="btn btn-sm btn-success px-3 py-2 rounded-pill shadow-sm" onclick="forceConnectionCheck()"><i class="bi bi-plug-fill me-1"></i> Connecté</button>
+                            <button class="btn btn-sm btn-success px-3 py-2 rounded-pill shadow-sm" onclick="forceConnectionCheck()"><i class="bi bi-plug-fill me-1"></i> ConnectÃƒÆ’Ã‚Â©</button>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -151,12 +151,12 @@ $plugins_cli = getScripts($cmd_cli_dir);
                         <div class="card shadow-sm border-0 bg-info bg-opacity-10">
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
-                                    <h5 class="text-info-emphasis mb-1"><i class="bi bi-table me-2"></i>Vues Personnalisées Web</h5>
-                                    <p class="mb-0 text-muted small">Interfaces web natives optimisées pour analyser les ressources.</p>
+                                    <h5 class="text-info-emphasis mb-1"><i class="bi bi-table me-2"></i>Vues PersonnalisÃƒÆ’Ã‚Â©es Web</h5>
+                                    <p class="mb-0 text-muted small">Interfaces web natives optimisÃƒÆ’Ã‚Â©es pour analyser les ressources.</p>
                                 </div>
                                 <div>
-                                    <a href="pods_table.php" class="btn btn-info text-white shadow-sm px-3 me-2">Ouvrir Pods List</a>
-                                    <a href="03_cas.php" class="btn btn-primary shadow-sm px-3">Gérer Moteur CAS</a>
+                                    <a href="pods_table.php" class="btn btn-info text-white shadow-sm px-3 me-2">Open Pods List</a>
+                                    <a href="03_cas.php" class="btn btn-primary shadow-sm px-3">GÃƒÆ’Ã‚Â©rer Moteur CAS</a>
                                 </div>
                             </div>
                         </div>
@@ -165,7 +165,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
 
                 <!-- OpenShift Plugins Categories -->
                 <?php foreach ($categorized_oc as $categoryName => $scripts): ?>
-                    <?php if ($categoryName === 'Composants SAS Viya'): ?>
+                    <?php if ($categoryName === 'SAS Viya Components'): ?>
                         <?php
                             $scripts = array_filter($scripts, function($s) {
                                 return !str_contains($s['file'], '03_cas.sh');
@@ -223,12 +223,12 @@ $plugins_cli = getScripts($cmd_cli_dir);
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header bg-dark text-white">
-            <h5 class="modal-title"><i class="bi bi-cloud-arrow-down me-2"></i>Connexion OpenShift</h5>
+            <h5 class="modal-title"><i class="bi bi-cloud-arrow-down me-2"></i>OpenShift Connection</h5>
           </div>
           <div class="modal-body text-center py-4" id="connModalBody">
             <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-            <h5>Vérification de la connexion au cluster...</h5>
-            <p class="text-muted small">Profil actif : <?= htmlspecialchars($active_profile) ?></p>
+            <h5>VÃƒÆ’Ã‚Â©rification de la connexion au cluster...</h5>
+            <p class="text-muted small">Active profile : <?= htmlspecialchars($active_profile) ?></p>
           </div>
           <div class="modal-footer justify-content-center" id="connModalFooter" style="display: none;">
           </div>
@@ -248,7 +248,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
         }
         
         window.forceConnectionCheck = function() {
-            document.getElementById('connModalBody').innerHTML = <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div><h5>Vérification de la connexion...</h5>;
+            document.getElementById('connModalBody').innerHTML = <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div><h5>VÃƒÆ’Ã‚Â©rification de la connexion...</h5>;
             document.getElementById('connModalFooter').style.display = 'none';
             connModal.show();
             checkConnection();
@@ -267,41 +267,41 @@ $plugins_cli = getScripts($cmd_cli_dir);
                 if (data.status === 'config_missing') {
                     body.innerHTML = 
                         <i class="bi bi-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
-                        <h5>Configuration Incomplète</h5>
-                        <p class="text-muted">L'URL du cluster n'est pas configurée pour ce profil.</p>
+                        <h5>Configuration IncomplÃƒÆ’Ã‚Â¨te</h5>
+                        <p class="text-muted">L'URL du cluster n'est pas configurÃƒÆ’Ã‚Â©e pour ce profil.</p>
                     ;
-                    footer.innerHTML = <a href="config_manager.php" class="btn btn-primary"><i class="bi bi-gear me-2"></i>Aller à la Configuration</a>;
+                    footer.innerHTML = <a href="config_manager.php" class="btn btn-primary"><i class="bi bi-gear me-2"></i>Aller ÃƒÆ’Ã‚Â  la Configuration</a>;
                     footer.style.display = 'flex';
                 } else if (data.status === 'token_expired') {
                     let linkHtml = '';
                     if (data.token_url && data.token_url !== 'skip') {
-                        linkHtml = <a href="+data.token_url+" target="_blank" class="btn btn-sm btn-outline-info mb-3"><i class="bi bi-box-arrow-up-right me-1"></i> Obtenir un nouveau Token</a>;
+                        linkHtml = <a href="+data.token_url+" target="_blank" class="btn btn-sm btn-outline-info mb-3"><i class="bi bi-box-arrow-up-right me-1"></i> Get a new Token</a>;
                     }
                     body.innerHTML = 
                         <i class="bi bi-shield-lock text-danger mb-2" style="font-size: 3rem;"></i>
-                        <h5 class="text-danger">Token Expiré ou Manquant</h5>
-                        <p class="text-muted small mb-2">Impossible de se connecter à <strong>+data.server+</strong></p>
+                        <h5 class="text-danger">Token ExpirÃƒÆ’Ã‚Â© ou Manquant</h5>
+                        <p class="text-muted small mb-2">Impossible de se connecter ÃƒÆ’Ã‚Â  <strong>+data.server+</strong></p>
                         +linkHtml+
                         <div class="form-floating mb-3 text-start">
                           <input type="password" class="form-control" id="newTokenInput" placeholder="sha256~...">
-                          <label for="newTokenInput">Collez le nouveau Token ici</label>
+                          <label for="newTokenInput">Paste the new Token here</label>
                         </div>
                     ;
-                    footer.innerHTML = <button class="btn btn-success px-4" onclick="saveNewToken()"><i class="bi bi-floppy me-2"></i>Enregistrer et Connecter</button>
-                                        <button class="btn btn-secondary" onclick="window.location.reload()">Fermer</button>;
+                    footer.innerHTML = <button class="btn btn-success px-4" onclick="saveNewToken()"><i class="bi bi-floppy me-2"></i>Save and Connect</button>
+                                        <button class="btn btn-secondary" onclick="window.location.reload()">Close</button>;
                     footer.style.display = 'flex';
                 } else if (data.status === 'success') {
                     body.innerHTML = 
                         <i class="bi bi-check-circle text-success mb-3" style="font-size: 3rem;"></i>
-                        <h5 class="text-success">Connexion Réussie</h5>
-                        <p class="text-muted small">Connecté au cluster avec succès.</p>
+                        <h5 class="text-success">Connexion RÃƒÆ’Ã‚Â©ussie</h5>
+                        <p class="text-muted small">ConnectÃƒÆ’Ã‚Â© au cluster avec succÃƒÆ’Ã‚Â¨s.</p>
                     ;
                     footer.style.display = 'none';
                     setTimeout(() => { window.location.reload(); }, 1000);
                 }
             } catch (err) {
-                body.innerHTML = <i class="bi bi-x-octagon text-danger mb-3" style="font-size: 3rem;"></i><h5>Erreur Système</h5><p class="text-danger">+err.message+</p>;
-                footer.innerHTML = <button class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>;
+                body.innerHTML = <i class="bi bi-x-octagon text-danger mb-3" style="font-size: 3rem;"></i><h5>Erreur SystÃƒÆ’Ã‚Â¨me</h5><p class="text-danger">+err.message+</p>;
+                footer.innerHTML = <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>;
                 footer.style.display = 'flex';
             }
         }
@@ -311,7 +311,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
             if (!tokenVal) return;
             
             const btn = document.querySelector('#connModalFooter .btn-success');
-            btn.innerHTML = <span class="spinner-border spinner-border-sm me-2"></span>Enregistrement...;
+            btn.innerHTML = <span class="spinner-border spinner-border-sm me-2"></span>Saving...;
             btn.disabled = true;
             
             const formData = new FormData();
@@ -321,7 +321,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
             await fetch('api_connect.php', { method: 'POST', body: formData });
             
             // Retry connection
-            document.getElementById('connModalBody').innerHTML = <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div><h5>Vérification de la connexion...</h5>;
+            document.getElementById('connModalBody').innerHTML = <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div><h5>VÃƒÆ’Ã‚Â©rification de la connexion...</h5>;
             document.getElementById('connModalFooter').style.display = 'none';
             checkConnection();
         };

@@ -22,7 +22,7 @@ $fields_def = [
     ]],
     'HEADER_COLOR' => ['label' => 'Header Color', 'type' => 'color', 'default' => '#212529'],
     'OC_CLUSTER_URL' => ['label' => 'OpenShift Cluster URL', 'type' => 'text', 'placeholder' => 'https://api.cluster.com:6443'],
-    'OC_TOKEN_URL' => ['label' => 'OpenShift Token URL', 'type' => 'text', 'placeholder' => 'Login link or ''skip'''],
+    'OC_TOKEN_URL' => ['label' => 'OpenShift Token URL', 'type' => 'text', 'placeholder' => "Login link or 'skip'"],
     'DEFAULT_NAMESPACE' => ['label' => 'SAS Viya Namespace', 'type' => 'text', 'placeholder' => 'sas-viya'],
     'VIYA_API_URL' => ['label' => 'SAS Viya API URL', 'type' => 'text', 'placeholder' => 'https://viya.mycompany.com'],
     'AUDIT_DIR' => ['label' => 'Audit Output Directory', 'type' => 'text', 'placeholder' => '/var/www/rapports_audit'],

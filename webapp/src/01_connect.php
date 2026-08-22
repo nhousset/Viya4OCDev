@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_run'])) {
                     <input class='form-check-input' type='checkbox' id='debugCheck'>
                     <label class='form-check-label' for='debugCheck'>Debug Mode</label>
                 </div>
-                <div class='input-group me-3' style='width: 140px;' title="Timeout (secondes)">
+                <div class='input-group me-3' style='width: 140px;' title="Timeout (seconds)">
                     <span class='input-group-text'><i class="bi bi-stopwatch"></i></span>
                     <input type='number' id='timeoutSec' class='form-control' value='30' min='1' max='300'>
                     <span class='input-group-text'>s</span>

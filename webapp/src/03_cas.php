@@ -26,15 +26,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 $s = trim($s);
                 $exists = run_oc("oc get casdeployment $s -n \\$DEFAULT_NAMESPACE 2>/dev/null");
                 if (empty(trim($exists))) {
-                    $dashboard[] = ['name' => $s, 'status' => 'Non dÃƒÂ©ployÃƒÂ© / Inconnu', 'color' => 'secondary', 'deployed' => false];
+                    $dashboard[] = ['name' => $s, 'status' => 'Not deployed / Unknown', 'color' => 'secondary', 'deployed' => false];
                     continue;
                 }
                 $pods = run_oc("oc get pods -n \\$DEFAULT_NAMESPACE -l casoperator.sas.com/server=$s --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l");
                 $count = (int)trim($pods);
                 if ($count > 0) {
-                    $dashboard[] = ['name' => $s, 'status' => "DÃƒÂ©marrÃƒÂ© ($count pods actifs)", 'color' => 'success', 'deployed' => true, 'running' => true];
+                    $dashboard[] = ['name' => $s, 'status' => "DÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©marrÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© ($count active pods)", 'color' => 'success', 'deployed' => true, 'running' => true];
                 } else {
-                    $dashboard[] = ['name' => $s, 'status' => 'ArrÃƒÂªtÃƒÂ© (0 pod)', 'color' => 'danger', 'deployed' => true, 'running' => false];
+                    $dashboard[] = ['name' => $s, 'status' => 'Stopped (0 pod)', 'color' => 'danger', 'deployed' => true, 'running' => false];
                 }
             }
             $response['dashboard'] = $dashboard;
@@ -53,9 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             if (!in_array($cas_name, $servers)) {
                 $servers[] = $cas_name;
                 file_put_contents($cas_file, implode("\n", $servers));
-                $response['output'] = "Serveur CAS '$cas_name' ajoutÃƒÂ© ÃƒÂ  la liste d'administration.";
+                $response['output'] = "CAS Server '$cas_name' added to administration list.";
             } else {
-                $response['output'] = "Ce serveur existe dÃƒÂ©jÃƒÂ  dans la liste.";
+                $response['output'] = "This server already exists in the list.";
             }
             break;
             
@@ -67,9 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             $pod_grep = $_POST['pod_grep'] ?? 'sas-cas-operator';
             $pod_name = trim(run_oc("oc get pods -n \\$DEFAULT_NAMESPACE --no-headers 2>/dev/null | grep $pod_grep | awk '{print $1}' | head -n 1"));
             if ($pod_name) {
-                $response['output'] = run_oc("echo 'Logs de $pod_name :'; oc logs $pod_name -n \\$DEFAULT_NAMESPACE --tail=100 2>&1");
+                $response['output'] = run_oc("echo 'Logs for $pod_name :'; oc logs $pod_name -n \\$DEFAULT_NAMESPACE --tail=100 2>&1");
             } else {
-                $response['output'] = "Erreur: Aucun pod trouvÃƒÂ© pour $pod_grep.";
+                $response['output'] = "Error: No pod found for $pod_grep.";
             }
             break;
     }
@@ -91,37 +91,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     <div class="container py-4">
         
         <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-            <h2 class="fw-bold mb-0 text-primary"><i class="bi bi-cpu-fill me-2"></i>Gestion & Statut du Moteur CAS</h2>
+            <h2 class="fw-bold mb-0 text-primary"><i class="bi bi-cpu-fill me-2"></i>CAS Engine Status & Management</h2>
             <div>
-                <button class="btn btn-outline-primary" onclick="loadDashboard()"><i class="bi bi-arrow-clockwise me-1"></i> Actualiser</button>
+                <button class="btn btn-outline-primary" onclick="loadDashboard()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh</button>
             </div>
         </div>
 
         <div class="row g-4 mb-4" id="dashboardCards">
-            <div class="col-12 text-center text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Chargement des serveurs CAS...</div>
+            <div class="col-12 text-center text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Loading CAS servers...</div>
         </div>
 
         <div class="row g-4 mb-4">
             <div class="col-md-4">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white fw-bold"><i class="bi bi-plus-circle text-success me-2"></i>Ajouter un serveur CAS</div>
+                    <div class="card-header bg-white fw-bold"><i class="bi bi-plus-circle text-success me-2"></i>Add a CAS server</div>
                     <div class="card-body">
                         <div class="input-group mb-3">
                             <input type="text" id="newCasName" class="form-control" placeholder="ex: shared-default">
-                            <button class="btn btn-success" type="button" onclick="addCasServer()">Ajouter</button>
+                            <button class="btn btn-success" type="button" onclick="addCasServer()">Add</button>
                         </div>
-                        <small class="text-muted">Ajoute un serveur ÃƒÂ  administrer pour ce profil.</small>
+                        <small class="text-muted">Add a server to manage for this profile.</small>
                     </div>
                 </div>
             </div>
             
             <div class="col-md-8">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white fw-bold"><i class="bi bi-tools text-warning me-2"></i>Actions Globales</div>
+                    <div class="card-header bg-white fw-bold"><i class="bi bi-tools text-warning me-2"></i>Global Actions</div>
                     <div class="card-body d-flex gap-2 flex-wrap">
-                        <button class="btn btn-outline-dark" onclick="runAction('global_status')"><i class="bi bi-search me-2"></i>Statut Global</button>
-                        <button class="btn btn-outline-info" onclick="runAction('logs', 'sas-cas-operator')"><i class="bi bi-file-text me-2"></i>Logs OpÃƒÂ©rateur</button>
-                        <button class="btn btn-outline-secondary" onclick="runAction('logs', 'sas-cas-control')"><i class="bi bi-file-text me-2"></i>Logs ContrÃƒÂ´leur</button>
+                        <button class="btn btn-outline-dark" onclick="runAction('global_status')"><i class="bi bi-search me-2"></i>Global Status</button>
+                        <button class="btn btn-outline-info" onclick="runAction('logs', 'sas-cas-operator')"><i class="bi bi-file-text me-2"></i>Operator Logs</button>
+                        <button class="btn btn-outline-secondary" onclick="runAction('logs', 'sas-cas-control')"><i class="bi bi-file-text me-2"></i>Controller Logs</button>
                     </div>
                 </div>
             </div>
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 <button class="btn btn-sm btn-outline-light" onclick="document.getElementById('consoleOut').innerHTML = ''"><i class="bi bi-trash"></i></button>
             </div>
             <div class="card-body p-0">
-                <pre id="consoleOut" class="m-0 p-3" style="max-height: 500px; overflow-y: auto; font-size: 0.85rem;">PrÃƒÂªt.</pre>
+                <pre id="consoleOut" class="m-0 p-3" style="max-height: 500px; overflow-y: auto; font-size: 0.85rem;">Ready.</pre>
             </div>
         </div>
 
@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 const response = await fetch('03_cas.php', { method: 'POST', body: formData });
                 return await response.json();
             } catch (err) {
-                logToConsole("<span class='text-danger'>Erreur rÃƒÂ©seau: " + err.message + "</span>");
+                logToConsole("<span class='text-danger'>Network error: " + err.message + "</span>");
                 return null;
             }
         }
@@ -172,9 +172,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
                 let buttons = '';
                 if (server.deployed) {
                     if (server.running) {
-                        buttons = <button class="btn btn-sm btn-danger" onclick="casAction('stop', '')"><i class="bi bi-stop-fill me-1"></i>ArrÃƒÂªter (Stop)</button>;
+                        buttons = <button class="btn btn-sm btn-danger" onclick="casAction('stop', '')"><i class="bi bi-stop-fill me-1"></i>Stop</button>;
                     } else {
-                        buttons = <button class="btn btn-sm btn-success" onclick="casAction('start', '')"><i class="bi bi-play-fill me-1"></i>DÃƒÂ©marrer (Start)</button>;
+                        buttons = <button class="btn btn-sm btn-success" onclick="casAction('start', '')"><i class="bi bi-play-fill me-1"></i>Start</button>;
                     }
                 }
                 
@@ -193,19 +193,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         }
 
         async function casAction(action, casName) {
-            logToConsole(<span class='text-warning'>ExÃƒÂ©cution de  sur ...</span>);
+            logToConsole(<span class='tExecuting  sur ...</span>);
             const res = await apiCall({ ajax_action: action, cas_name: casName });
             if (res) {
-                logToConsole(<strong class='text-success'>[]  terminÃƒÂ© :</strong>\n);
+                logToConsole(<strong class='text-success'>[]  finished :</strong>\n);
                 loadDashboard();
             }
         }
         
         async function runAction(action, grep = '') {
-            logToConsole(<span class='text-warning'>ExÃƒÂ©cution de ...</span>);
+            logToConsole(<span class='tExecuting ...</span>);
             const res = await apiCall({ ajax_action: action, pod_grep: grep });
             if (res) {
-                logToConsole(<strong class='text-success'>[] RÃƒÂ©sultat :</strong>\n);
+                logToConsole(<stResult :</strong>\n);
             }
         }
 

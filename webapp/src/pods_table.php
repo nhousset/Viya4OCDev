@@ -1,6 +1,6 @@
 <?php
 require_once 'init.php';
-// Commande pour rÃƒÆ’Ã‚Â©cupÃƒÆ’Ã‚Â©rer les pods au format JSON
+// Command to retrieve pods in JSON format
 // On passe par bash pour sourcer config.env afin d'avoir le bon contexte
 $source_config = file_exists($config_path) ? "source $config_path && " : "";
 $cmd = "bash -c '{$source_config} export PROFILE_NAME={$active_profile} && oc get pods -n \${DEFAULT_NAMESPACE:-sas-viya} -o json 2>/dev/null'";
@@ -56,7 +56,7 @@ $pods = $pods_data['items'] ?? [];
                                 $node = $pod['spec']['nodeName'] ?? '-';
                                 $creationTimestamp = $pod['metadata']['creationTimestamp'] ?? null;
                                 
-                                // Calcul de l'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ge
+                                // Calculate age
                                 $age = '-';
                                 if ($creationTimestamp) {
                                     $date = new DateTime($creationTimestamp);
@@ -67,7 +67,7 @@ $pods = $pods_data['items'] ?? [];
                                     else $age = $interval->i . "m";
                                 }
                                 
-                                // Calcul des redÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©marrages
+                                // Calculate restarts
                                 $restarts = 0;
                                 if (isset($pod['status']['containerStatuses'])) {
                                     foreach ($pod['status']['containerStatuses'] as $cStatus) {

@@ -15,14 +15,14 @@ if (!in_array($app_dir . '/config.env', $config_files) && !is_dir($app_dir . '/c
 }
 
 $fields_def = [
-    'ENV_TYPE' => ['label' => 'Type d''environnement', 'type' => 'select', 'default' => 'dev', 'options' => [
-        'dev' => 'Développement',
-        'recette' => 'Recette',
-        'prod' => 'Production (Cadre Rouge)'
+    'ENV_TYPE' => ['label' => 'Environment Type', 'type' => 'select', 'default' => 'dev', 'options' => [
+        'dev' => 'Development',
+        'recette' => 'Staging',
+        'prod' => 'Production (Red Border)'
     ]],
-    'HEADER_COLOR' => ['label' => 'Couleur du Header', 'type' => 'color', 'default' => '#212529'],
-    'DEFAULT_NAMESPACE' => ['label' => 'Namespace SAS Viya', 'type' => 'text', 'placeholder' => 'sas-viya'],
-    'DRY_RUN' => ['label' => 'Mode DRY RUN (true/false)', 'type' => 'checkbox', 'default' => 'false']
+    'HEADER_COLOR' => ['label' => 'Header Color', 'type' => 'color', 'default' => '#212529'],
+    'DEFAULT_NAMESPACE' => ['label' => 'SAS Viya Namespace', 'type' => 'text', 'placeholder' => 'sas-viya'],
+    'DRY_RUN' => ['label' => 'DRY RUN Mode (true/false)', 'type' => 'checkbox', 'default' => 'false']
 ];
 
 $message = '';

@@ -32,8 +32,8 @@ function categorizeScripts($scripts) {
         'Resources & Storage' => [],
         'Monitoring & Logs' => [],
         'SAS Viya Components' => [],
-        'RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©seau & DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ploiements' => [],
-        'Administration & OpÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rations' => [],
+        'Network & Deployments' => [],
+        'Administration & Operations' => [],
         'Others' => []
     ];
 
@@ -48,9 +48,9 @@ function categorizeScripts($scripts) {
         } elseif (preg_match('/^(03|05|07)_/', $name)) {
             $categories['SAS Viya Components'][] = $s;
         } elseif (preg_match('/^(06|11|12|13)_/', $name)) {
-            $categories['RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©seau & DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ploiements'][] = $s;
+            $categoNetwork & Deployments'][] = $s;
         } elseif (preg_match('/^(16|98)_/', $name)) {
-            $categories['Administration & OpÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rations'][] = $s;
+            $categories['Administration & Operations'][] = $s;
         } else {
             $categories['Others'][] = $s;
         }
@@ -64,8 +64,8 @@ $categoryIcons = [
     'Resources & Storage' => 'bi-hdd-stack-fill',
     'Monitoring & Logs' => 'bi-activity',
     'SAS Viya Components' => 'bi-cpu-fill',
-    'RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©seau & DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ploiements' => 'bi-diagram-3-fill',
-    'Administration & OpÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rations' => 'bi-gear-fill',
+    'Network & Deployments' => 'bi-diagram-3-fill',
+    'Administration & Operations' => 'bi-gear-fill',
     'Others' => 'bi-terminal-fill'
 ];
 
@@ -267,10 +267,10 @@ $plugins_cli = getScripts($cmd_cli_dir);
                 if (data.status === 'config_missing') {
                     body.innerHTML = 
                         <i class="bi bi-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
-                        <h5>Configuration IncomplÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨te</h5>
+                        <h5>Incomplete Configuration</h5>
                         <p class="text-muted">Cluster URL is not configured for this profile.</p>
                     ;
-                    footer.innerHTML = <a href="config_manager.php" class="btn btn-primary"><i class="bi bi-gear me-2"></i>Aller ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  la Configuration</a>;
+                    footer.innerHTML = <a href="config_manager.php" class="btn btn-primary"><i class="bi bi-gear me-2"></i>Go to Configuration</a>;
                     footer.style.display = 'flex';
                 } else if (data.status === 'token_expired') {
                     let linkHtml = '';
@@ -279,8 +279,8 @@ $plugins_cli = getScripts($cmd_cli_dir);
                     }
                     body.innerHTML = 
                         <i class="bi bi-shield-lock text-danger mb-2" style="font-size: 3rem;"></i>
-                        <h5 class="text-danger">Token ExpirÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© ou Manquant</h5>
-                        <p class="text-muted small mb-2">Impossible de se connecter ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  <strong>+data.server+</strong></p>
+                        <h5 class="text-danger">Expired or Missing Token</h5>
+                        <p class="text-muted small mb-2">Unable to connect to <strong>+data.server+</strong></p>
                         +linkHtml+
                         <div class="form-floating mb-3 text-start">
                           <input type="password" class="form-control" id="newTokenInput" placeholder="sha256~...">
@@ -294,7 +294,7 @@ $plugins_cli = getScripts($cmd_cli_dir);
                     body.innerHTML = 
                         <i class="bi bi-check-circle text-success mb-3" style="font-size: 3rem;"></i>
                         <h5 class="text-success">Connection Successful</h5>
-                        <p class="text-muted small">ConnectÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© au cluster avec succÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨s.</p>
+                        <p class="text-muted small">Successfully connected to the cluster.</p>
                     ;
                     footer.style.display = 'none';
                     setTimeout(() => { window.location.reload(); }, 1000);

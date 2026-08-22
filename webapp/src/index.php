@@ -148,7 +148,7 @@ $categoryIcons = [
                           </div>
                       `;
                       footer.innerHTML = `<button class="btn btn-success px-4" onclick="saveNewToken()"><i class="bi bi-floppy me-2"></i>Save and Connect</button>
-                                          <button class="btn btn-secondary" onclick="window.location.reload()">Close</button>`;
+                                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
                       footer.style.display = 'flex';
                   } else if (data.status === 'success') {
                       body.innerHTML = `
@@ -167,7 +167,7 @@ $categoryIcons = [
                       <h5 class="text-danger">Internal Error</h5>
                       <p class="text-muted small">Could not verify connection.</p>
                   `;
-                  document.getElementById('connModalFooter').innerHTML = `<button class="btn btn-secondary" onclick="window.location.reload()">Close</button>`;
+                  document.getElementById('connModalFooter').innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
                   document.getElementById('connModalFooter').style.display = 'flex';
               });
         }

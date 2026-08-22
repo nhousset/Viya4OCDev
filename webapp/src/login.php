@@ -8,40 +8,30 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 }
 
 $users_file = '/var/www/conf/users.json';
-if (!file_exists($users_file)) {
-    $default_users = [
-        'admin' => [
-            'password' => password_hash('admin', PASSWORD_DEFAULT),
-            'role' => 'admin',
-            'profiles' => ['*'],
-            'must_change_password' => true
-        ]
+$users = @json_decode(@file_get_contents($users_file), true) ?: [];
+
+// Add default admin if doesn't exist
+if (empty($users) || !isset($users['admin'])) {
+    $users['admin'] = [
+        'password' => password_hash('admin', PASSWORD_DEFAULT),
+        'role' => 'admin',
+        'profiles' => ['*']
     ];
-    @file_put_contents($users_file, json_encode($default_users, JSON_PRETTY_PRINT));
+    @file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT));
 }
 
 $error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
-    
-    $users = @json_decode(@file_get_contents($users_file), true) ?: [];
-    
-    // Fallback in case users.json could not be created (e.g. permission issues)
-    if (empty($users)) {
-        $users['admin'] = [
-            'password' => password_hash('admin', PASSWORD_DEFAULT),
-            'role' => 'admin',
-            'profiles' => ['*'],
-            'must_change_password' => true
-        ];
-    }
     
     if (isset($users[$username]) && password_verify($password, $users[$username]['password'])) {
         $_SESSION['logged_in'] = true;
         $_SESSION['username'] = $username;
         $_SESSION['role'] = $users[$username]['role'];
         $_SESSION['allowed_profiles'] = $users[$username]['profiles'] ?? [];
+        $_SESSION['default_profile'] = $users[$username]['default_profile'] ?? null;
         
         // Force reset if admin is still using 'admin' as password
         if ($username === 'admin' && $password === 'admin') {
@@ -65,25 +55,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>Login - OpsBuddy</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background-color: #f5f6f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: none;
+        }
+        .login-logo {
+            max-width: 250px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
-<body class="auth-body">
-    <div class="card shadow border-0" style="width: 420px; padding: 1rem;">
-        
-        <div class="card-body p-4">
-                <div class="text-center mb-4"><img src="img/logo.png" alt="OpsBuddy Logo" style="max-height: 180px; width: 100%; object-fit: contain;"></div>
-            <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+<body>
+    <div class="login-card card">
+        <div class="card-body p-5 text-center">
+            <img src="img/logo.png" alt="OpsBuddy Logo" class="login-logo">
+            <h4 class="mb-4 text-muted">Sign In</h4>
+            
+            <?php if ($error): ?>
+                <div class="alert alert-danger p-2"><?= htmlspecialchars($error) ?></div>
+            <?php endif; ?>
+            
             <form method="POST">
-                <div class="mb-3">
-                    <label class="form-label">Username</label>
+                <div class="mb-3 text-start">
+                    <label class="form-label text-muted small fw-bold">USERNAME</label>
                     <input type="text" name="username" class="form-control" required autofocus>
                 </div>
-                <div class="mb-4">
-                    <label class="form-label">Password</label>
+                <div class="mb-4 text-start">
+                    <label class="form-label text-muted small fw-bold">PASSWORD</label>
                     <input type="password" name="password" class="form-control" required>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Login</button>
+                <button type="submit" class="btn btn-primary w-100 py-2">Log In</button>
             </form>
         </div>
     </div>

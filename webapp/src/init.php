@@ -69,7 +69,12 @@ if (!isset($_SESSION['active_profile'])) {
     if ($role === 'admin') {
         $_SESSION['active_profile'] = 'default';
     } else {
-        $_SESSION['active_profile'] = !empty($allowed_profiles) ? $allowed_profiles[0] : 'default';
+        $default_prof = $_SESSION['default_profile'] ?? null;
+        if (!empty($default_prof) && in_array($default_prof, $allowed_profiles)) {
+            $_SESSION['active_profile'] = $default_prof;
+        } else {
+            $_SESSION['active_profile'] = !empty($allowed_profiles) ? $allowed_profiles[0] : 'default';
+        }
     }
 } else {
     if ($role !== 'admin' && !in_array($_SESSION['active_profile'], $allowed_profiles)) {

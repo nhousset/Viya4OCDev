@@ -1,4 +1,5 @@
 <?php
+require_once 'license_helper.php';
 session_start();
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     if (basename($_SERVER['PHP_SELF']) !== 'login.php') {

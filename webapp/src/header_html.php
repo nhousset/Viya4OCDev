@@ -50,6 +50,13 @@ if (($_SESSION['role'] ?? 'user') === 'admin') {
       </ul>
       
       <div class="d-flex align-items-center me-4">
+                    <div class="me-3">
+              <?php if ($license_info['valid']): ?>
+                  <span class="badge bg-success" title="Expires in <?= $license_info['days_left'] ?> days"><i class="bi bi-patch-check-fill me-1"></i> <?= htmlspecialchars($license_info['client_name']) ?></span>
+              <?php else: ?>
+                  <a href="license_manager.php" class="badge bg-danger text-decoration-none" title="<?= htmlspecialchars($license_info['reason']) ?>"><i class="bi bi-exclamation-triangle-fill me-1"></i> UNLICENSED</a>
+              <?php endif; ?>
+          </div>
           <span class="text-white small me-3"><i class="bi bi-person-circle"></i> <?= htmlspecialchars($_SESSION['username'] ?? '') ?></span>
           <form class="m-0 d-flex align-items-center" method="POST">
             <label class="text-white me-2 small fw-bold"><i class="bi bi-person-badge"></i> Profile:</label>

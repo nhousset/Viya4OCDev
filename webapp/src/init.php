@@ -53,9 +53,11 @@ function log_audit($action, $details = '') {
     @file_put_contents($file, json_encode($logs, JSON_PRETTY_PRINT));
 }
 
+$allowed_profiles = $_SESSION['allowed_profiles'] ?? [];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['switch_profile'])) {
     $requested_profile = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['switch_profile']);
-    if ($role === 'admin' || in_array($requested_profile, $_SESSION['allowed_profiles'])) {
+    if ($role === 'admin' || in_array($requested_profile, $allowed_profiles)) {
         $_SESSION['active_profile'] = $requested_profile;
         log_audit('Switch Profile', "Profile changed to: $requested_profile");
     }
@@ -67,11 +69,11 @@ if (!isset($_SESSION['active_profile'])) {
     if ($role === 'admin') {
         $_SESSION['active_profile'] = 'default';
     } else {
-        $_SESSION['active_profile'] = !empty($_SESSION['allowed_profiles']) ? $_SESSION['allowed_profiles'][0] : 'default';
+        $_SESSION['active_profile'] = !empty($allowed_profiles) ? $allowed_profiles[0] : 'default';
     }
 } else {
-    if ($role !== 'admin' && !in_array($_SESSION['active_profile'], $_SESSION['allowed_profiles'])) {
-         $_SESSION['active_profile'] = !empty($_SESSION['allowed_profiles']) ? $_SESSION['allowed_profiles'][0] : 'default';
+    if ($role !== 'admin' && !in_array($_SESSION['active_profile'], $allowed_profiles)) {
+         $_SESSION['active_profile'] = !empty($allowed_profiles) ? $allowed_profiles[0] : 'default';
     }
 }
 

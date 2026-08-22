@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once 'init.php';
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     if (isset($_SESSION['must_change_password']) && $_SESSION['must_change_password']) {
         header('Location: change_password.php'); exit;

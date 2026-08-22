@@ -1,5 +1,5 @@
 #!/bin/bash
-# TITLE: Gestion Interactive des Pods (Recherche, Logs, Shell...)
+# TITLE: Interactive Pod Management (Search, Logs, Shell)
 
 # --- Couleurs ---
 CYAN='\033[0;36m'
@@ -21,29 +21,29 @@ action_menu() {
     while true; do
         clear
         echo -e "${CYAN}==============================================================${NC}"
-        echo -e " 🛠️  ACTIONS SUR LE POD : ${YELLOW}$pod_name${NC}"
+        echo -e " Ã°Å¸â€ºÂ Ã¯Â¸Â  ACTIONS SUR LE POD : ${YELLOW}$pod_name${NC}"
         echo -e "${CYAN}==============================================================${NC}"
         
         # Affichage rapide du statut actuel du pod
         oc get pod "$pod_name" -n "$DEFAULT_NAMESPACE" | sed -n '2p' | awk '{print " Statut actuel : \033[1;33m" $3 "\033[0m | Restarts : " $4}'
         echo -e "${CYAN}--------------------------------------------------------------${NC}"
         
-        echo -e " ${BOLD}1)${NC} 📄 Afficher les logs (200 dernières lignes)"
-        echo -e " ${BOLD}2)${NC} 🔄 Suivre les logs en direct (tail -f)"
-        echo -e " ${BOLD}3)${NC} 🔍 Décrire le pod (oc describe)"
-        echo -e " ${BOLD}4)${NC} ⚠️  Voir les événements (Events) de ce pod"
-        echo -e " ${BOLD}5)${NC} 💻 Ouvrir un terminal dans le pod (oc rsh)"
-        echo -e " ${BOLD}6)${NC} 🗑️  Redémarrer le pod (Delete avec confirmation)"
+        echo -e " ${BOLD}1)${NC} Ã°Å¸â€œâ€ž Afficher les logs (200 derniÃƒÂ¨res lignes)"
+        echo -e " ${BOLD}2)${NC} Ã°Å¸â€â€ž Suivre les logs en direct (tail -f)"
+        echo -e " ${BOLD}3)${NC} Ã°Å¸â€Â DÃƒÂ©crire le pod (oc describe)"
+        echo -e " ${BOLD}4)${NC} Ã¢Å¡Â Ã¯Â¸Â  Voir les ÃƒÂ©vÃƒÂ©nements (Events) de ce pod"
+        echo -e " ${BOLD}5)${NC} Ã°Å¸â€™Â» Ouvrir un terminal dans le pod (oc rsh)"
+        echo -e " ${BOLD}6)${NC} Ã°Å¸â€”â€˜Ã¯Â¸Â  RedÃƒÂ©marrer le pod (Delete avec confirmation)"
         echo -e "${CYAN}--------------------------------------------------------------${NC}"
-        echo -e " ${RED}r)${NC} Retour à la liste des pods"
+        echo -e " ${RED}r)${NC} Retour ÃƒÂ  la liste des pods"
         echo ""
-        read -p "👉 Votre choix : " act_choice
+        read -p "Ã°Å¸â€˜â€° Votre choix : " act_choice
 
         echo -e "${CYAN}--------------------------------------------------------------${NC}"
         
         case "$act_choice" in
             1)
-                echo "Récupération des logs..."
+                echo "RÃƒÂ©cupÃƒÂ©ration des logs..."
                 oc logs "$pod_name" -n "$DEFAULT_NAMESPACE" --tail=200 | less -R
                 ;;
             2)
@@ -55,31 +55,31 @@ action_menu() {
                 ;;
             4)
                 oc get events -n "$DEFAULT_NAMESPACE" --field-selector involvedObject.name="$pod_name"
-                read -p "Appuyez sur Entrée pour continuer..."
+                read -p "Appuyez sur EntrÃƒÂ©e pour continuer..."
                 ;;
             5)
                 echo -e "${YELLOW}Connexion au pod $pod_name... (Tapez 'exit' pour en sortir)${NC}"
                 oc rsh -n "$DEFAULT_NAMESPACE" "$pod_name"
                 ;;
             6)
-                # CONFIRMATION SÉCURISÉE
-                echo -e "${RED}⚠️  ATTENTION : La suppression d'un pod force le cluster à l'interrompre et à en recréer un neuf.${NC}"
-                read -p "👉 Voulez-vous VRAIMENT redémarrer le pod '$pod_name' ? (o/N) : " confirm
+                # CONFIRMATION SÃƒâ€°CURISÃƒâ€°E
+                echo -e "${RED}Ã¢Å¡Â Ã¯Â¸Â  ATTENTION : La suppression d'un pod force le cluster ÃƒÂ  l'interrompre et ÃƒÂ  en recrÃƒÂ©er un neuf.${NC}"
+                read -p "Ã°Å¸â€˜â€° Voulez-vous VRAIMENT redÃƒÂ©marrer le pod '$pod_name' ? (o/N) : " confirm
                 
-                # Vérifie si l'utilisateur a tapé 'o' ou 'O'. Sinon, on annule.
+                # VÃƒÂ©rifie si l'utilisateur a tapÃƒÂ© 'o' ou 'O'. Sinon, on annule.
                 if [[ "$confirm" =~ ^[oO]$ ]]; then
                     echo -e "${YELLOW}Suppression en cours...${NC}"
                     oc delete pod "$pod_name" -n "$DEFAULT_NAMESPACE"
-                    echo -e "${GREEN}✅ Pod supprimé avec succès.${NC}"
-                    read -p "Appuyez sur Entrée pour rafraîchir la liste..."
-                    return # Quitte le sous-menu pour rafraîchir la liste principale
+                    echo -e "${GREEN}Ã¢Å“â€¦ Pod supprimÃƒÂ© avec succÃƒÂ¨s.${NC}"
+                    read -p "Appuyez sur EntrÃƒÂ©e pour rafraÃƒÂ®chir la liste..."
+                    return # Quitte le sous-menu pour rafraÃƒÂ®chir la liste principale
                 else
-                    echo -e "${GREEN}Action annulée. Le pod n'a pas été touché.${NC}"
+                    echo -e "${GREEN}Action annulÃƒÂ©e. Le pod n'a pas ÃƒÂ©tÃƒÂ© touchÃƒÂ©.${NC}"
                     sleep 1.5
                 fi
                 ;;
             r)
-                return # Quitte la fonction et remonte à la boucle principale
+                return # Quitte la fonction et remonte ÃƒÂ  la boucle principale
                 ;;
             *)
                 echo -e "${RED}Choix invalide.${NC}"
@@ -108,7 +108,7 @@ while true; do
     POD_NAMES=()
     
     if [ -z "$PODS_RAW" ]; then
-        echo -e "${RED}Aucun pod trouvé avec ces critères.${NC}"
+        echo -e "${RED}Aucun pod trouvÃƒÂ© avec ces critÃƒÂ¨res.${NC}"
     else
         i=1
         while read -r pod_name pod_status; do
@@ -128,20 +128,20 @@ while true; do
     fi
 
     echo -e "${CYAN}--------------------------------------------------------------${NC}"
-    echo -e " ${BOLD}s)${NC} 🔍 Chercher / Filtrer"
+    echo -e " ${BOLD}s)${NC} Ã°Å¸â€Â Chercher / Filtrer"
     if [ -n "$FILTER" ]; then
-        echo -e " ${BOLD}c)${NC} 🧹 Effacer le filtre"
+        echo -e " ${BOLD}c)${NC} Ã°Å¸Â§Â¹ Effacer le filtre"
     fi
-    echo -e " ${RED}q)${NC} 🚪 Quitter l'explorateur"
+    echo -e " ${RED}q)${NC} Ã°Å¸Å¡Âª Quitter l'explorateur"
     echo -e "${CYAN}--------------------------------------------------------------${NC}"
     
-    read -p "👉 Choisissez un pod (1-${#POD_NAMES[@]}) ou une action : " choice
+    read -p "Ã°Å¸â€˜â€° Choisissez un pod (1-${#POD_NAMES[@]}) ou une action : " choice
 
     if [[ "$choice" == "q" ]]; then
         break 
         
     elif [[ "$choice" == "s" ]]; then
-        read -p "Entrez un mot-clé (ex: logon, compute, cas) : " new_filter
+        read -p "Entrez un mot-clÃƒÂ© (ex: logon, compute, cas) : " new_filter
         FILTER="$new_filter"
         
     elif [[ "$choice" == "c" ]]; then

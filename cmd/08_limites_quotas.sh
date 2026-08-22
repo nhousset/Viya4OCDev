@@ -1,5 +1,5 @@
 #!/bin/bash
-# TITLE: Audit des Limites et Quotas (CPU/RAM)
+# TITLE: Limits and Quotas Audit (CPU/RAM)
 
 export DEFAULT_NAMESPACE="${DEFAULT_NAMESPACE:-default}"
 

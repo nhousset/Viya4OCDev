@@ -226,7 +226,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </tbody>
                         </table>
                     </div>
-                            </div> <!-- End Manage Users Tab -->
+                </div>
+            </div>
+        </div>
+        </div> <!-- End Manage Users Tab -->
 
             <!-- AUDIT LOGS TAB -->
             <div class="tab-pane fade" id="audit" role="tabpanel">
@@ -286,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div> <!-- End Tab Content -->
     </div>
 
-    <script>
+        <script>
     function editUser(username, profiles, forceChange) {
         document.getElementById('form_username').value = username;
         document.getElementById('form_password').value = '';
@@ -299,7 +302,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         window.scrollTo(0, 0);
         document.getElementById('form_password').focus();
     }
-        document.getElementById('auditSearch').addEventListener('keyup', function() {
+
+    document.getElementById('auditSearch').addEventListener('keyup', function() {
         let filter = this.value.toLowerCase();
         let rows = document.querySelectorAll('#auditTable tbody tr');
         
@@ -309,15 +313,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
     });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">    document.getElementById('auditSearch').addEventListener('keyup', function() {
-        let filter = this.value.toLowerCase();
-        let rows = document.querySelectorAll('#auditTable tbody tr');
-        
-        rows.forEach(row => {
-            let text = row.textContent.toLowerCase();
-            row.style.display = text.includes(filter) ? '' : 'none';
-        });
-    });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

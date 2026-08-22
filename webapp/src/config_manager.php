@@ -21,9 +21,21 @@ $fields_def = [
         'prod' => 'Production (Red Border)'
     ]],
     'HEADER_COLOR' => ['label' => 'Header Color', 'type' => 'color', 'default' => '#212529'],
+    'OC_CLUSTER_URL' => ['label' => 'OpenShift Cluster URL', 'type' => 'text', 'placeholder' => 'https://api.cluster.com:6443'],
+    'OC_TOKEN_URL' => ['label' => 'OpenShift Token URL', 'type' => 'text', 'placeholder' => 'Login link or ''skip'''],
     'DEFAULT_NAMESPACE' => ['label' => 'SAS Viya Namespace', 'type' => 'text', 'placeholder' => 'sas-viya'],
-    'DRY_RUN' => ['label' => 'DRY RUN Mode (true/false)', 'type' => 'checkbox', 'default' => 'false']
+    'VIYA_API_URL' => ['label' => 'SAS Viya API URL', 'type' => 'text', 'placeholder' => 'https://viya.mycompany.com'],
+    'AUDIT_DIR' => ['label' => 'Audit Output Directory', 'type' => 'text', 'placeholder' => '/var/www/rapports_audit'],
+    'IGNORE_SAS_CLI' => ['label' => 'Ignore SAS CLI', 'type' => 'checkbox', 'default' => 'false'],
+    'IGNORE_TLS' => ['label' => 'Ignore TLS Verification', 'type' => 'checkbox', 'default' => 'false'],
+    'DRY_RUN' => ['label' => 'DRY RUN Mode', 'type' => 'checkbox', 'default' => 'false']
 ];
+
+function get_profile_name($filename) {
+    if ($filename === 'config.env') return 'default';
+    if (preg_match('/^config-(.+)\.env$/', $filename, $m)) return $m[1];
+    return $filename;
+}
 
 $message = '';
 
@@ -151,12 +163,12 @@ function parse_env_file($path) {
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span>
                                 <i class="bi <?= $is_default ? 'bi-star-fill text-warning' : 'bi-file-earmark-text text-secondary' ?> me-2"></i> 
-                                <?= htmlspecialchars($base) ?>
+                                <?= htmlspecialchars(get_profile_name($base)) ?>
                             </span>
                             <?php if (!$is_default): ?>
-                            <form method="POST" class="m-0" onsubmit="return confirm('Are you sure you want to delete the profile <?= htmlspecialchars($base) ?>? This cannot be undone.');">
+                            <form method="POST" class="m-0" onsubmit="return confirm('Are you sure you want to delete the profile <?= htmlspecialchars(get_profile_name($base)) ?>? This cannot be undone.');">
                                 <input type="hidden" name="action" value="delete_profile">
-                                <input type="hidden" name="filename" value="<?= htmlspecialchars($base) ?>">
+                                <input type="hidden" name="filename" value="<?= htmlspecialchars(get_profile_name($base)) ?>">
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Profile"><i class="bi bi-trash"></i></button>
                             </form>
                             <?php endif; ?>
@@ -180,7 +192,7 @@ function parse_env_file($path) {
                                 $id = preg_replace('/[^a-zA-Z0-9]/', '', $base);
                             ?>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link <?= $first ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#tab-<?= $id ?>" type="button" role="tab"><?= $base ?></button>
+                                    <button class="nav-link <?= $first ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#tab-<?= $id ?>" type="button" role="tab"><?= htmlspecialchars(get_profile_name($base)) ?></button>
                                 </li>
                             <?php $first = false; endforeach; ?>
                         </ul>
@@ -196,7 +208,7 @@ function parse_env_file($path) {
                                 <div class="tab-pane fade <?= $first ? 'show active' : '' ?>" id="tab-<?= $id ?>" role="tabpanel">
                                     <form method="POST">
                                         <input type="hidden" name="action" value="save_file">
-                                        <input type="hidden" name="filename" value="<?= htmlspecialchars($base) ?>">
+                                        <input type="hidden" name="filename" value="<?= htmlspecialchars(get_profile_name($base)) ?>">
                                         
                                         <div class="row g-3">
                                             <?php foreach ($fields_def as $k => $def): 

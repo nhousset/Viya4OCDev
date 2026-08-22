@@ -1,43 +1,88 @@
 <?php
 require_once 'init.php';
 
-$users_file = '/var/www/conf/users.json';
-$users = json_decode(@file_get_contents($users_file), true) ?: [];
-
-$config_files_scan = array_filter(glob($app_dir . '/config*.env') ?: [], 'is_file');
-if (!in_array($app_dir . '/config.env', $config_files_scan) && !is_dir($app_dir . '/config.env')) {
-    array_unshift($config_files_scan, $app_dir . '/config.env');
+if (($_SESSION['role'] ?? 'user') !== 'admin') {
+    die("Access denied.");
 }
+
 $all_profiles = [];
+$config_files_scan = array_filter(glob('/var/www/conf/config*.env') ?: [], 'is_file');
 foreach ($config_files_scan as $f) {
     $base = basename($f);
     if ($base === 'config.env') { $all_profiles[] = 'default'; }
-    elseif (preg_match('/config-(.+)\.env/', $base, $m)) { $all_profiles[] = $m[1]; }
+    elseif (preg_match('/config-(.+)\.env$/', $base, $m)) { $all_profiles[] = $m[1]; }
+}
+
+$users_file = '/var/www/conf/users.json';
+$users = @json_decode(@file_get_contents($users_file), true) ?: [];
+if (empty($users) || !isset($users['admin'])) {
+    $users['admin'] = [
+        'password' => password_hash('admin', PASSWORD_DEFAULT),
+        'role' => 'admin',
+        'profiles' => ['*']
+    ];
 }
 
 $message = '';
+$error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         if ($_POST['action'] === 'add_user') {
             $username = preg_replace('/[^a-zA-Z0-9_]/', '', $_POST['username']);
-            $password = $_POST['password'];
+            $password = $_POST['password'] ?? '';
             $profiles = $_POST['profiles'] ?? [];
+            $force_change = isset($_POST['force_change']);
             
-            if (!empty($username) && !empty($password)) {
-                $users[$username] = [
-                    'password' => password_hash($password, PASSWORD_DEFAULT),
-                    'role' => 'user',
-                    'profiles' => $profiles
-                ];
-                file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT));
-                $message = "User $username added/updated successfully.";
+            if (!empty($username)) {
+                if (!isset($users[$username])) {
+                    // New user
+                    if (empty($password)) {
+                        $error = "Password is required for new users.";
+                    } else {
+                        $users[$username] = [
+                            'password' => password_hash($password, PASSWORD_DEFAULT),
+                            'role' => 'user',
+                            'profiles' => $profiles
+                        ];
+                        if ($force_change) $users[$username]['must_change_password'] = true;
+                        
+                        if (@file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT)) !== false) {
+                            $message = "User $username created successfully.";
+                        } else {
+                            $error = "Failed to save users.json.";
+                        }
+                    }
+                } else {
+                    // Edit existing user
+                    if (!empty($password)) {
+                        $users[$username]['password'] = password_hash($password, PASSWORD_DEFAULT);
+                    }
+                    if ($username !== 'admin') {
+                        $users[$username]['profiles'] = $profiles;
+                    }
+                    if ($force_change) {
+                        $users[$username]['must_change_password'] = true;
+                    } else {
+                        unset($users[$username]['must_change_password']);
+                    }
+                    
+                    if (@file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT)) !== false) {
+                        $message = "User $username updated successfully.";
+                    } else {
+                        $error = "Failed to save users.json.";
+                    }
+                }
             }
         } elseif ($_POST['action'] === 'delete_user') {
             $username = $_POST['username'];
             if ($username !== 'admin' && isset($users[$username])) {
                 unset($users[$username]);
-                file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT));
-                $message = "User $username deleted.";
+                if (@file_put_contents($users_file, json_encode($users, JSON_PRETTY_PRINT)) !== false) {
+                    $message = "User $username deleted.";
+                } else {
+                    $error = "Failed to save users.json.";
+                }
             }
         }
     }
@@ -47,10 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>User Manager - SAS Viya 4 OPS</title>
+    <title>User Manager - OpsBuddy</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-<link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-light">
     <?php require_once 'header_html.php'; ?>
@@ -63,6 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
+        <?php if ($error): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?= htmlspecialchars($error) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
 
         <div class="row">
             <div class="col-md-4">
@@ -71,26 +122,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <h5 class="mb-0">Add / Edit User</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST">
+                        <form method="POST" id="userForm">
                             <input type="hidden" name="action" value="add_user">
                             <div class="mb-3">
                                 <label class="form-label">Username:</label>
-                                <input type="text" name="username" class="form-control" required>
+                                <input type="text" name="username" id="form_username" class="form-control" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Password:</label>
-                                <input type="password" name="password" class="form-control" required>
+                                <input type="password" name="password" id="form_password" class="form-control">
+                                <div class="form-text">Leave blank to keep current password when editing.</div>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" name="force_change" id="form_force_change">
+                                <label class="form-check-label text-danger fw-bold" for="form_force_change">Force password change on next login</label>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Allowed Profiles:</label>
-                                <select name="profiles[]" class="form-select" multiple size="4">
+                                <select name="profiles[]" id="form_profiles" class="form-select" multiple size="4">
                                     <?php foreach ($all_profiles as $p): ?>
                                         <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="form-text">Hold Ctrl/Cmd to select multiple.</div>
+                                <div class="form-text">Hold Ctrl/Cmd to select multiple. Admin ignores this.</div>
                             </div>
-                            <button class="btn btn-primary w-100" type="submit">Save User</button>
+                            <button type="submit" class="btn btn-primary w-100">Save User</button>
                         </form>
                     </div>
                 </div>
@@ -107,6 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <tr>
                                     <th>Username</th>
                                     <th>Role</th>
+                                    <th>Status</th>
                                     <th>Allowed Profiles</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
@@ -123,6 +180,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <?php endif; ?>
                                     </td>
                                     <td class="align-middle">
+                                        <?php if (!empty($data['must_change_password'])): ?>
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-key-fill me-1"></i>Must change PWD</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-success">OK</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="align-middle">
                                         <?php if ($data['role'] === 'admin'): ?>
                                             <span class="badge bg-dark">ALL</span>
                                         <?php else: ?>
@@ -131,12 +195,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <?php endforeach; ?>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-end align-middle">
+                                    <td class="align-middle text-end">
+                                        <?php
+                                            $safeProfiles = htmlspecialchars(json_encode($data['profiles'] ?? []));
+                                            $safeForce = !empty($data['must_change_password']) ? 'true' : 'false';
+                                        ?>
+                                        <button class="btn btn-sm btn-outline-primary me-1" title="Edit User" onclick="editUser('<?= htmlspecialchars($u) ?>', <?= $safeProfiles ?>, <?= $safeForce ?>)"><i class="bi bi-pencil"></i></button>
                                         <?php if ($u !== 'admin'): ?>
-                                        <form method="POST" class="d-inline" onsubmit="return confirm('Delete user?');">
+                                        <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete user <?= htmlspecialchars($u) ?>?');">
                                             <input type="hidden" name="action" value="delete_user">
                                             <input type="hidden" name="username" value="<?= htmlspecialchars($u) ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
                                         </form>
                                         <?php endif; ?>
                                     </td>
@@ -149,6 +218,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
+
+    <script>
+    function editUser(username, profiles, forceChange) {
+        document.getElementById('form_username').value = username;
+        document.getElementById('form_password').value = '';
+        document.getElementById('form_force_change').checked = forceChange;
+        
+        const select = document.getElementById('form_profiles');
+        for (let i = 0; i < select.options.length; i++) {
+            select.options[i].selected = profiles.includes(select.options[i].value);
+        }
+        window.scrollTo(0, 0);
+        document.getElementById('form_password').focus();
+    }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

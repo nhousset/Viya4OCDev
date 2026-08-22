@@ -28,18 +28,31 @@ $categoryIcons = [
                     <h2 class="fw-bold mb-0"><i class="bi bi-grid-1x2-fill me-2 text-primary"></i>Dashboard</h2>
                 </div>
 
-                <!-- Custom Views -->
-                <div class="row mb-5">
-                    <div class="col-12">
-                        <div class="card shadow-sm border-0 bg-info bg-opacity-10">
-                            <div class="card-body d-flex align-items-center justify-content-between">
-                                <div>
-                                    <h5 class="text-info-emphasis mb-1"><i class="bi bi-table me-2"></i>Custom Web Views</h5>
-                                    <p class="mb-0 text-muted small">Native web interfaces optimized for resource analysis.</p>
+                <!-- Custom Views & Diagnostics -->
+                <div class="row mb-5 g-4">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm border-0 bg-info bg-opacity-10 h-100">
+                            <div class="card-body d-flex flex-column justify-content-center">
+                                <div class="d-flex align-items-center mb-2">
+                                    <h5 class="text-info-emphasis mb-0"><i class="bi bi-table me-2"></i>Custom Web Views</h5>
                                 </div>
+                                <p class="mb-3 text-muted small">Native web interfaces optimized for resource analysis.</p>
                                 <div>
-                                    <a href="pods_table.php" class="btn btn-info text-white shadow-sm px-3 me-2">Open Pods List</a>
-                                    <a href="03_cas.php" class="btn btn-primary shadow-sm px-3">Manage CAS Engine</a>
+                                    <a href="pods_table.php" class="btn btn-sm btn-info text-white shadow-sm px-3 me-2">Open Pods List</a>
+                                    <a href="03_cas.php" class="btn btn-sm btn-primary shadow-sm px-3">Manage CAS Engine</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm border-0 bg-danger bg-opacity-10 h-100">
+                            <div class="card-body d-flex flex-column justify-content-center">
+                                <div class="d-flex align-items-center mb-2">
+                                    <h5 class="text-danger-emphasis mb-0"><i class="bi bi-heart-pulse me-2"></i>Cluster Diagnostics</h5>
+                                </div>
+                                <p class="mb-3 text-muted small">Check connectivity, API access, and authentication tokens.</p>
+                                <div>
+                                    <a href="22_check_connection.php" class="btn btn-sm btn-danger shadow-sm px-3"><i class="bi bi-activity me-1"></i> Run Connection Diagnostics</a>
                                 </div>
                             </div>
                         </div>
@@ -92,7 +105,7 @@ $categoryIcons = [
         </div>
     </div>
     
-      <div class="modal fade" id="connectionModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal fade" id="connectionModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header bg-dark text-white">
@@ -130,7 +143,10 @@ $categoryIcons = [
                           <h5 class="text-danger">Connection Error</h5>
                           <p class="text-muted small">${data.message}</p>
                       `;
-                      footer.innerHTML = `<button class="btn btn-secondary" onclick="window.location.reload()">Retry</button>`;
+                      footer.innerHTML = `
+                          <a href="22_check_connection.php" class="btn btn-outline-danger"><i class="bi bi-activity me-1"></i>Diagnostics</a>
+                          <button class="btn btn-secondary" onclick="window.location.reload()">Retry</button>
+                      `;
                       footer.style.display = 'flex';
                   } else if (data.status === 'token_expired') {
                       let linkHtml = '';
@@ -147,8 +163,11 @@ $categoryIcons = [
                             <label for="newTokenInput">Paste the new Token here</label>
                           </div>
                       `;
-                      footer.innerHTML = `<button class="btn btn-success px-4" onclick="saveNewToken()"><i class="bi bi-floppy me-2"></i>Save and Connect</button>
-                                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
+                      footer.innerHTML = `
+                          <a href="22_check_connection.php" class="btn btn-outline-danger"><i class="bi bi-activity"></i></a>
+                          <button class="btn btn-success px-3" onclick="saveNewToken()"><i class="bi bi-floppy me-2"></i>Save</button>
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                      `;
                       footer.style.display = 'flex';
                   } else if (data.status === 'success') {
                       body.innerHTML = `
@@ -167,7 +186,10 @@ $categoryIcons = [
                       <h5 class="text-danger">Internal Error</h5>
                       <p class="text-muted small">Could not verify connection.</p>
                   `;
-                  document.getElementById('connModalFooter').innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
+                  document.getElementById('connModalFooter').innerHTML = `
+                      <a href="22_check_connection.php" class="btn btn-outline-danger"><i class="bi bi-activity me-1"></i>Diagnostics</a>
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  `;
                   document.getElementById('connModalFooter').style.display = 'flex';
               });
         }
@@ -192,7 +214,7 @@ $categoryIcons = [
                 window.location.reload();
             } else {
                 alert('Error saving token: ' + data.message);
-                btn.innerHTML = `<i class="bi bi-floppy me-2"></i>Save and Connect`;
+                btn.innerHTML = `<i class="bi bi-floppy me-2"></i>Save`;
                 btn.disabled = false;
             }
         });

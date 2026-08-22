@@ -48,7 +48,7 @@ function categorizeScripts($scripts) {
         } elseif (preg_match('/^(03|05|07)_/', $name)) {
             $categories['SAS Viya Components'][] = $s;
         } elseif (preg_match('/^(06|11|12|13)_/', $name)) {
-            $categoNetwork & Deployments'][] = $s;
+            $categories['Network & Deployments'][] = $s;
         } elseif (preg_match('/^(16|98)_/', $name)) {
             $categories['Administration & Operations'][] = $s;
         } else {

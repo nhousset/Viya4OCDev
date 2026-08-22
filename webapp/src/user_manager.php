@@ -31,6 +31,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($_POST['action'] === 'add_user') {
             $username = preg_replace('/[^a-zA-Z0-9_]/', '', $_POST['username']);
             $password = $_POST['password'] ?? '';
+                        $profiles = <?php
+require_once 'init.php';
+
+if (($_SESSION['role'] ?? 'user') !== 'admin') {
+    die("Access denied.");
+}
+
+$all_profiles = [];
+$config_files_scan = array_filter(glob('/var/www/conf/config*.env') ?: [], 'is_file');
+foreach ($config_files_scan as $f) {
+    $base = basename($f);
+    if ($base === 'config.env') { $all_profiles[] = 'default'; }
+    elseif (preg_match('/config-(.+)\.env$/', $base, $m)) { $all_profiles[] = $m[1]; }
+}
+
+$users_file = '/var/www/conf/users.json';
+$users = @json_decode(@file_get_contents($users_file), true) ?: [];
+if (empty($users) || !isset($users['admin'])) {
+    $users['admin'] = [
+        'password' => password_hash('admin', PASSWORD_DEFAULT),
+        'role' => 'admin',
+        'profiles' => ['*']
+    ];
+}
+
+$message = '';
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['action'])) {
+        if ($_POST['action'] === 'add_user') {
+            $username = preg_replace('/[^a-zA-Z0-9_]/', '', $_POST['username']);
+            $password = $_POST['password'] ?? '';
             $profiles = $_POST['profiles'] ?? [];
             $force_change = isset($_POST['force_change']);
             
@@ -58,8 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!empty($password)) {
                         $users[$username]['password'] = password_hash($password, PASSWORD_DEFAULT);
                     }
-                    if ($username !== 'admin') {
+                                        if ($username !== 'admin') {
                         $users[$username]['profiles'] = $profiles;
+                        $users[$username]['default_profile'] = $default_profile;
                     }
                     if ($force_change) {
                         $users[$username]['must_change_password'] = true;
@@ -149,14 +183,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="checkbox" class="form-check-input" name="force_change" id="form_force_change">
                                 <label class="form-check-label text-danger fw-bold" for="form_force_change">Force password change on next login</label>
                             </div>
-                            <div class="mb-3">
+                                                        <div class="mb-3">
                                 <label class="form-label">Allowed Profiles:</label>
-                                <select name="profiles[]" id="form_profiles" class="form-select" multiple size="4">
-                                    <?php foreach ($all_profiles as $p): ?>
-                                        <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="form-text">Hold Ctrl/Cmd to select multiple. Admin ignores this.</div>
+                                <div class="row g-1">
+                                    <div class="col-5">
+                                        <div class="text-muted small mb-1">Available</div>
+                                        <select id="avail_profiles" class="form-select form-select-sm" multiple size="5">
+                                            <?php foreach ($all_profiles as $p): ?>
+                                                <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-2 d-flex flex-column justify-content-center align-items-center gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveProfiles('avail_profiles', 'form_profiles')"><i class="bi bi-chevron-right"></i></button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveProfiles('form_profiles', 'avail_profiles')"><i class="bi bi-chevron-left"></i></button>
+                                    </div>
+                                    <div class="col-5">
+                                        <div class="text-muted small mb-1">Allowed</div>
+                                        <select name="profiles[]" id="form_profiles" class="form-select form-select-sm border-primary" multiple size="5"></select>
+                                    </div>
+                                </div>
+                                <div class="form-text">Admin ignores this.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label"><i class="bi bi-star-fill text-warning me-1"></i>Favorite / Default:</label>
+                                <select name="default_profile" id="form_default_profile" class="form-select form-select-sm"></select>
+                                <div class="form-text">Opened automatically on login.</div>
                             </div>
                             <button type="submit" class="btn btn-primary w-100">Save User</button>
                         </form>
@@ -202,8 +254,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <?php if ($data['role'] === 'admin'): ?>
                                             <span class="badge bg-dark">ALL</span>
                                         <?php else: ?>
-                                            <?php foreach (($data['profiles'] ?? []) as $p): ?>
-                                                <span class="badge bg-info text-dark"><?= htmlspecialchars($p) ?></span>
+                                                                                        <?php foreach (($data['profiles'] ?? []) as $p): 
+                                                $is_fav = (($data['default_profile'] ?? '') === $p);
+                                            ?>
+                                                <span class="badge bg-info text-dark mb-1">
+                                                    <?php if($is_fav) echo '<i class="bi bi-star-fill text-warning me-1"></i>'; ?>
+                                                    <?= htmlspecialchars($p) ?>
+                                                </span>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
                                     </td>
@@ -212,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             $safeProfiles = htmlspecialchars(json_encode($data['profiles'] ?? []));
                                             $safeForce = !empty($data['must_change_password']) ? 'true' : 'false';
                                         ?>
-                                        <button class="btn btn-sm btn-outline-primary me-1" title="Edit User" onclick="editUser('<?= htmlspecialchars($u) ?>', <?= $safeProfiles ?>, <?= $safeForce ?>)"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-sm btn-outline-primary me-1" title="Edit User" onclick="editUser('<?= htmlspecialchars($u) ?>', <?= $safeProfiles ?>, <?= $safeForce ?>, '<?= htmlspecialchars($data['default_profile'] ?? '') ?>')"><i class="bi bi-pencil"></i></button>
                                         <?php if ($u !== 'admin'): ?>
                                         <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete user <?= htmlspecialchars($u) ?>?');">
                                             <input type="hidden" name="action" value="delete_user">
@@ -290,28 +347,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
         <script>
-    function editUser(username, profiles, forceChange) {
+        function editUser(username, profiles, forceChange, defaultProfile) {
         document.getElementById('form_username').value = username;
         document.getElementById('form_password').value = '';
         document.getElementById('form_force_change').checked = forceChange;
         
-        const select = document.getElementById('form_profiles');
-        for (let i = 0; i < select.options.length; i++) {
-            select.options[i].selected = profiles.includes(select.options[i].value);
+        // Reset Dual Listbox
+        const avail = document.getElementById('avail_profiles');
+        const allowed = document.getElementById('form_profiles');
+        
+        // Move all back to available first
+        Array.from(allowed.options).forEach(opt => avail.add(opt));
+        
+        // Move selected to allowed
+        Array.from(avail.options).forEach(opt => {
+            if (profiles.includes(opt.value)) {
+                allowed.add(opt);
+            }
+        });
+        
+        updateDefaultProfileSelect();
+        
+        const defaultSelect = document.getElementById('form_default_profile');
+        if (defaultProfile && Array.from(defaultSelect.options).some(o => o.value === defaultProfile)) {
+            defaultSelect.value = defaultProfile;
         }
+        
         window.scrollTo(0, 0);
         document.getElementById('form_password').focus();
     }
 
-    document.getElementById('auditSearch').addEventListener('keyup', function() {
-        let filter = this.value.toLowerCase();
-        let rows = document.querySelectorAll('#auditTable tbody tr');
-        
-        rows.forEach(row => {
-            let text = row.textContent.toLowerCase();
-            row.style.display = text.includes(filter) ? '' : 'none';
+    function moveProfiles(fromId, toId) {
+        const from = document.getElementById(fromId);
+        const to = document.getElementById(toId);
+        Array.from(from.selectedOptions).forEach(opt => {
+            to.add(opt);
+            opt.selected = false;
         });
+        updateDefaultProfileSelect();
+    }
+
+    function updateDefaultProfileSelect() {
+        const allowed = document.getElementById('form_profiles');
+        const defaultSelect = document.getElementById('form_default_profile');
+        const currentDefault = defaultSelect.value;
+        
+        defaultSelect.innerHTML = '';
+        Array.from(allowed.options).forEach(opt => {
+            let newOpt = new Option(opt.text, opt.value);
+            defaultSelect.add(newOpt);
+        });
+        
+        if (Array.from(defaultSelect.options).some(o => o.value === currentDefault)) {
+            defaultSelect.value = currentDefault;
+        }
+    }
+
+    document.getElementById('userForm').addEventListener('submit', function() {
+        const allowed = document.getElementById('form_profiles');
+        Array.from(allowed.options).forEach(opt => opt.selected = true);
     });
+
+    // Initialize the default profile select on load
+    updateDefaultProfileSelect(););
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

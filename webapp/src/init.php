@@ -140,7 +140,7 @@ function categorizeScripts($scripts) {
 
     foreach ($scripts as $s) {
         $name = $s['file'];
-        if (preg_match('/^(01|18|19|20|21)_/', $name)) {
+        if (preg_match('/^(01|18|19|20|21|22)_/', $name)) {
             $categories['Global Audits & Checks'][] = $s;
         } elseif (preg_match('/^(02|08|09)_/', $name)) {
             $categories['Resources & Storage'][] = $s;
